@@ -1,2 +1,7 @@
 venv
 __pycache__
+.env
+node_modules
+
+# ServiceAccountKey.json CAN NOT be shared with ANYONE as it contains executive access to the database
+serviceAccountKey.json

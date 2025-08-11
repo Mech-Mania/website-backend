@@ -1,26 +1,54 @@
 from typing import Union
-from enum import Enum
 from typing import Annotated
+from router.misc import getAndorHTML
 from pydantic import BaseModel, validate_email
 from fastapi import APIRouter, HTTPException, Header
+from .config import db
+import dotenv
 
+
+# # just to figure out what http is for
+# from starlette.status import HTTP_405_METHOD_NOT_ALLOWED
+
+
+Password = dotenv.get_key(dotenv_path='.env', key_to_get='ADMIN_PASSWORD')
 EmailRouter = APIRouter()
 
-
 class EmailSubmitRequest(BaseModel):
-    email:str
+    content:str
 
+class PasswordSubmission(BaseModel):
+    content:str
 
 @EmailRouter.post("/emails/submit")
-def submit_email(email_submit_request: EmailSubmitRequest|None = None):
+def submit_email(emailSubmitRequest: EmailSubmitRequest|None = None):
     
-    if email_submit_request is None:
+    if emailSubmitRequest is None:
         raise HTTPException(status_code=400, detail='No email provided')
     
     try:
-        email = validate_email(email_submit_request.email)[1]
+        email = validate_email(emailSubmitRequest.content)[1]
     except:
         raise HTTPException(status_code=400, detail='Invalid email format')
 
 
     return {'email':email}
+
+
+
+@EmailRouter.post("/emails")
+def get_emails(passwordSubmission:PasswordSubmission = PasswordSubmission(content='')):
+    """Checks password and if correct returns the emailing list from Firestore"""
+    
+    print(dotenv.get_key(dotenv_path='.env', key_to_get='ADMIN_PASSWORD'))
+    if passwordSubmission.content != Password:
+        raise HTTPException(status_code=401, detail='Password Incorrect')
+
+    documentRef = db.collection('emails').document('emails')
+
+    if documentRef is None:
+        raise HTTPException(status_code=500, detail='Database Error 00A. Please notify organizers@mechmania.ca.')
+    emails = documentRef.get().to_dict() or {'val':[]}
+
+    return {'emails':emails['val']} 
+

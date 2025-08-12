@@ -21,19 +21,22 @@ from dotenv import load_dotenv
 load_dotenv('.env')
 KeyString:str = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY') or '{}'
 db = google.cloud.firestore.Client.from_service_account_info(json.loads(KeyString))
-
 #load email client
 # If modifying these scopes, delete the file token.json or the token in environment
 SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
+GMAIL_SERVICE_ACCOUNT_KEY = json.loads(os.environ.get('GMAIL_SERVICE_ACCOUNT_KEY') or '{}')
+
 
 def auth():
+  load = db.collection('Auth').document('Tokens').get(['Gmail_API']).to_dict() or {}
+  TOKEN = load["Gmail_API"]
   """Runs to grab cred to do executive actions"""
   creds = None
   # The file token.json stores the user's access and refresh tokens, and is
   # created automatically when the authorization flow completes for the first
   # time.
-  if os.path.exists("token.json"):
-    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+  if TOKEN:
+    creds = Credentials.from_authorized_user_info(json.loads(TOKEN),SCOPES)
 
   # If there are no (valid) credentials available, let the user log in.
 
@@ -44,22 +47,17 @@ def auth():
       creds.refresh(Request())
 
     else:
-      flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
-      creds = flow.run_local_server(port=62800)
+      flow = InstalledAppFlow.from_client_config(GMAIL_SERVICE_ACCOUNT_KEY,SCOPES)
+      creds = flow.run_local_server(port=62800, access_type='offline', include_granted_scopes=False)
     # Save the credentials for the next run
 
-
-    with open("token.json", "w") as token:
-      token.write(creds.to_json())
+    db.collection('Auth').document('Tokens').update({'Gmail_API':creds.to_json()})
   
   return creds
 
-if __name__ == "__main__":
-  auth()
-
 
 class PasswordSubmission(BaseModel):
-    content:str
+    password:str
 
 def checkPassword(password:str):
   return password == os.environ.get('ADMIN_PASSWORD')

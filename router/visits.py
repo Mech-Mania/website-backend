@@ -1,8 +1,7 @@
-from pydantic import BaseModel, validate_email
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from .auth import db, PasswordSubmission, checkPassword
 from google.cloud import firestore
-import datetime
+import datetime, json
 
 
 VisitsRouter = APIRouter()
@@ -13,7 +12,6 @@ def IncrementVisits():
         transaction = db.transaction()
         @firestore.transactional
         def runTransaction(transaction,docRef):
-                docRef = db.collection('analytics').document('visits')
                 time = datetime.datetime.now()
                 # key consists of <year><month><day>. the K at the start is so firebase accepts it
                 key = f'K{"{:04d}".format(time.year)}{"{:02d}".format(time.month)}{"{:02d}".format(time.day)}'
@@ -33,7 +31,7 @@ def IncrementVisits():
 
         runTransaction(transaction,docRef)
     except Exception as e:
-        return f"Transaction failed: {e}"
+        return f"Transaction failed"
 
     return "transaction succeeded"
 
@@ -42,7 +40,7 @@ def IncrementVisits():
 def GetVisits(passwordSubmission:PasswordSubmission):
     """Checks password and if correct returns the visits data from Firestore"""
     
-    if not checkPassword(passwordSubmission.content):
+    if not checkPassword(passwordSubmission.password):
         raise HTTPException(status_code=401, detail='Password Incorrect')
 
     documentRef = db.collection('analytics').document('visits')
@@ -51,5 +49,5 @@ def GetVisits(passwordSubmission:PasswordSubmission):
         raise HTTPException(status_code=500, detail='Database Error 00B. Please notify organizers@mechmania.ca.')
     visits = documentRef.get().to_dict() or {}
 
-    return {'visits':visits} 
+    return Response(status_code=200, content=json.dumps({'visits':visits}), headers={'Content-Type':'application/json'})
 

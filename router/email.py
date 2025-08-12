@@ -2,7 +2,7 @@ from typing import Union
 from typing import Annotated
 from router.misc import getAndorHTML
 from pydantic import BaseModel, validate_email
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 import os, base64
 from dotenv import load_dotenv
 from .auth import auth, build, HttpError, checkPassword, db, PasswordSubmission
@@ -10,6 +10,7 @@ from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import email.utils
+import json
 
 # gather credentials and initialize firestore ##
 load_dotenv('.env')
@@ -25,10 +26,10 @@ class EmailSubmitRequest(BaseModel):
 #############################################################################################
 
 @EmailRouter.post("/emails")
-def getEmails(passwordSubmission:PasswordSubmission = PasswordSubmission(content='')):
+def getEmails(passwordSubmission:PasswordSubmission = PasswordSubmission(password='')):
     """Checks password and if correct returns the emailing list from Firestore"""
     
-    if not checkPassword(passwordSubmission.content):
+    if not checkPassword(passwordSubmission.password):
         raise HTTPException(status_code=401, detail='Password Incorrect')
 
     documentRef = db.collection('emails').document('emails')
@@ -37,7 +38,7 @@ def getEmails(passwordSubmission:PasswordSubmission = PasswordSubmission(content
         raise HTTPException(status_code=500, detail='Database Error 00A. Please notify organizers@mechmania.ca.')
     emails = documentRef.get().to_dict() or {'val':[]}
 
-    return {'emails':emails['val']} 
+    return Response(status_code=200,content=json.dumps({'message':'Success','emails':emails['val']}), headers={'Content-Type':'application/json'})
 
 #############################################################################################
 
@@ -83,7 +84,8 @@ def submitEmail(emailSubmitRequest: EmailSubmitRequest|None = None):
         .send(userId="me", body=message)
         .execute()
     )
-    return {'email':email}
+    
+    return Response(json.dumps({'message':'Success, check your email.'}), status_code=200, headers={'Content-Type':'application/json'})
 
 #############################################################################################
 

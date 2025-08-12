@@ -1,13 +1,15 @@
+import json
 from typing import Union
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel
 from fastapi.responses import HTMLResponse
 
 # routers
 from router.email import EmailRouter
 from router.visits import VisitsRouter
+from router.scoreboard import ScoreboardRouter
 
-
+from router.auth import checkPassword, PasswordSubmission
 from router.misc import getAndorHTML
 app = FastAPI()
 
@@ -28,9 +30,16 @@ def readRoot():
     """
     return HTMLResponse(content=htmlContent, status_code=200)
 
+
+@app.post("/password")
+def verifyPassword(passwordSubmission:PasswordSubmission):
+    result = checkPassword(passwordSubmission.password)
+    return Response(status_code=200 if result else 401,content=json.dumps({'result':result}), headers={'content-type':'application/json'})
+
 # include routers
 app.include_router(EmailRouter)
 app.include_router(VisitsRouter)
+app.include_router(ScoreboardRouter)
 #############################################################################################
 
 # Code for displaying a quote from my favourite TV show (Andor) whenever a user is browsing normally

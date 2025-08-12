@@ -8,10 +8,21 @@ from fastapi.responses import HTMLResponse
 from router.email import EmailRouter
 from router.visits import VisitsRouter
 from router.scoreboard import ScoreboardRouter
-
+from fastapi.middleware.cors import CORSMiddleware
 from router.auth import checkPassword, PasswordSubmission
 from router.misc import getAndorHTML
 app = FastAPI()
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173","https://mechmania.ca"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 
 class Item(BaseModel):
     name: str

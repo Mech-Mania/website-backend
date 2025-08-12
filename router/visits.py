@@ -31,9 +31,9 @@ def IncrementVisits():
 
         runTransaction(transaction,docRef)
     except Exception as e:
-        return f"Transaction failed"
+        return Response(status_code=500)
 
-    return "transaction succeeded"
+    return Response(status_code=200)
 
 
 @VisitsRouter.post("/visits")

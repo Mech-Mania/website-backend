@@ -1,8 +1,6 @@
-from typing import Union
-from typing import Annotated
 from router.misc import getAndorHTML
 from pydantic import BaseModel, validate_email
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, Request
 import os, base64
 from dotenv import load_dotenv
 from .auth import auth, build, HttpError, checkPassword, db, PasswordSubmission
@@ -43,14 +41,14 @@ def getEmails(passwordSubmission:PasswordSubmission = PasswordSubmission(passwor
 #############################################################################################
 
 @EmailRouter.post("/emails/submit")
-def submitEmail(emailSubmitRequest: EmailSubmitRequest|None = None):
+async def submitEmail(request:Request):
     
-
-    if emailSubmitRequest is None:
+    req = (await request.json())
+    if req['content'] is None:
         raise HTTPException(status_code=400, detail='No email provided')
     
     try:
-        email = validate_email(emailSubmitRequest.content)[1]
+        email = validate_email(req['content'])[1]
     except:
         raise HTTPException(status_code=400, detail='Invalid email format')
 

@@ -2,7 +2,6 @@ import random
 def getAndorHTML():
     AndorText = open('public/andor.txt','r').readlines()
     printed = AndorText[random.randint(0,len(AndorText)-1)]
-    print(printed)
     htmlContent = f"""
     <html>
         <body>

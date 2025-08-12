@@ -1,13 +1,15 @@
 from typing import Union
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from pydantic import validate_email
 from fastapi.responses import HTMLResponse
 
+# routers
 from router.email import EmailRouter
+from router.visits import VisitsRouter
+
+
 from router.misc import getAndorHTML
 app = FastAPI()
-
 
 class Item(BaseModel):
     name: str
@@ -16,7 +18,7 @@ class Item(BaseModel):
 
 
 @app.get("/")
-def read_root():
+def readRoot():
     htmlContent = f"""
     <html>
         <body>
@@ -26,17 +28,19 @@ def read_root():
     """
     return HTMLResponse(content=htmlContent, status_code=200)
 
+# include routers
 app.include_router(EmailRouter)
+app.include_router(VisitsRouter)
+#############################################################################################
 
-
-
-# Code for displaying a quote from my favourite TV show whenever a user is browsing normally
+# Code for displaying a quote from my favourite TV show (Andor) whenever a user is browsing normally
 
 @app.exception_handler(404)
-async def Handler_404(request, exc: HTTPException):
+async def Handler404(request, exc: HTTPException):
     return HTMLResponse(content=getAndorHTML(), status_code=404)
 
 @app.exception_handler(405)
-async def Handler_405(request, exc: HTTPException):
+async def Handler405(request, exc: HTTPException):
     return HTMLResponse(content=getAndorHTML(), status_code=405)
+
 

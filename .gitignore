@@ -3,5 +3,6 @@ __pycache__
 .env
 node_modules
 
-# ServiceAccountKey.json CAN NOT be shared with ANYONE as it contains executive access to the database
-serviceAccountKey.json
+# THESE CAN NOT PUSHED TO GIT
+token.json
+credentials.json

@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv('.env')
 KeyString:str = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY') or '{}'
 print(KeyString)
-cred = credentials.Certificate(json.JSONDecoder().decode(KeyString))
+cred = credentials.Certificate(json.loads(KeyString))
 firebase_admin.initialize_app(cred)
 
 db = firestore.client()

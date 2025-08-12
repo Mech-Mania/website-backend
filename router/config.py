@@ -1,10 +1,11 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
-import dotenv
-import json
+import json, os
+from dotenv import load_dotenv
 
 # gather credentials and initialize firestore ##
-KeyString:str = dotenv.get_key(dotenv_path='.env', key_to_get='FIREBASE_SERVICE_ACCOUNT_KEY') or ''
+load_dotenv('.env')
+KeyString:str = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY') or ''
 cred = credentials.Certificate(json.JSONDecoder().decode(KeyString))
 firebase_admin.initialize_app(cred)
 

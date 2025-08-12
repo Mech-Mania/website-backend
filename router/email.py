@@ -4,14 +4,17 @@ from router.misc import getAndorHTML
 from pydantic import BaseModel, validate_email
 from fastapi import APIRouter, HTTPException, Header
 from .config import db
-import dotenv
+import os
+from dotenv import load_dotenv
 
+# gather credentials and initialize firestore ##
+load_dotenv('.env')
 
 # # just to figure out what http is for
 # from starlette.status import HTTP_405_METHOD_NOT_ALLOWED
 
 
-Password = dotenv.get_key(dotenv_path='.env', key_to_get='ADMIN_PASSWORD')
+Password = os.environ.get('ADMIN_PASSWORD')
 EmailRouter = APIRouter()
 
 class EmailSubmitRequest(BaseModel):
@@ -40,7 +43,6 @@ def submit_email(emailSubmitRequest: EmailSubmitRequest|None = None):
 def get_emails(passwordSubmission:PasswordSubmission = PasswordSubmission(content='')):
     """Checks password and if correct returns the emailing list from Firestore"""
     
-    print(dotenv.get_key(dotenv_path='.env', key_to_get='ADMIN_PASSWORD'))
     if passwordSubmission.content != Password:
         raise HTTPException(status_code=401, detail='Password Incorrect')
 

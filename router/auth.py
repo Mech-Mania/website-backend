@@ -1,4 +1,4 @@
-# This code is from google's quickstart docs here: https://developers.google.com/workspace/gmail/api/quickstart/python
+# Part of this code is sampled (just the auth() function) from google's quickstart docs here : https://developers.google.com/workspace/gmail/api/quickstart/python
 # For any future devs of this project: If you need the token, either email the previous dev (easier) or get the credentials 
 # for the api client on the google workspace, then run those cred through here to get an auth token which is what you use for auth on the main app
 # This 

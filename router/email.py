@@ -119,14 +119,12 @@ async def verifyEmail(ID:str=''):
     creds = auth()
     if len(ID) != 128:
         return HTMLResponse(content=getAndorHTML(),status_code=422)
-    
     storedIDs = db.collection('emails').document('validationRequired').get().to_dict() or {}
 
     if ID not in storedIDs.keys():
         return RedirectResponse(url="https://mechmania.ca/emailLanding?ID={ID}",status_code=307)
     
     email = storedIDs[ID]['email']
-
     @firestore.transactional
     def runTransaction(transaction):
 
@@ -143,8 +141,7 @@ async def verifyEmail(ID:str=''):
     if response['end']:
         return response['redir']
 
-
-    name,email = validate_email(email)
+    name = email.split('@')[0]
 
     try:
     # Call the Gmail API

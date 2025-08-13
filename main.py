@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse
 from router.email import EmailRouter, limiter
 from router.visits import VisitsRouter
 from router.scoreboard import ScoreboardRouter
-from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.cors import CORSMiddleware
 from router.auth import checkPassword, PasswordSubmission
 from router.misc import getAndorHTML
 from slowapi.util import get_remote_address

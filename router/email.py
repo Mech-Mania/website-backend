@@ -83,7 +83,7 @@ async def submitEmail(request:Request):
 
     try:
     # Call the Gmail API
-        service = build("gmail", "v1", credentials=creds)
+        service = build("gmail", "v1", credentials=creds,cache_discovery=False)
 
     except HttpError as e:
         raise HTTPException(e.status_code, e.error_details)
@@ -150,7 +150,7 @@ async def verifyEmail(ID:str=''):
 
     try:
     # Call the Gmail API
-        service = build("gmail", "v1", credentials=creds)
+        service = build("gmail", "v1", credentials=creds,cache_discovery=False)
 
     except HttpError as e:
         raise HTTPException(e.status_code, e.error_details)

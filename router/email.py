@@ -55,7 +55,8 @@ async def submitEmail(request:Request):
         raise HTTPException(status_code=400, detail='No email provided')
     
     try:
-        name, email = req['content'].split('@')
+        name = req['content'].split('@')[0]
+        email = req['content']
     except:
         raise HTTPException(status_code=400, detail='Invalid email format')
     # Get Creds from auth.py
@@ -99,7 +100,6 @@ async def submitEmail(request:Request):
         <br>
         <img src='cid:logoA1B2C3' />
     """
-    print('made it to here 2')
     email_message = buildEmail(f"{email}","organizers@mechmania.ca","NoReply Register Email",html,'Mechmania Team')
     encoded_message = base64.urlsafe_b64encode(email_message.as_bytes()).decode()
     message = {'raw': encoded_message}
@@ -109,7 +109,6 @@ async def submitEmail(request:Request):
         .send(userId="me", body=message)
         .execute()
     )
-    print('made it to here 3')
     return Response(json.dumps({'status':200,'message':'Success! Check your email.'}), status_code=200, headers={'Content-Type':'application/json'})
 
 #############################################################################################

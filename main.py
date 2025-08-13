@@ -17,14 +17,6 @@ app = FastAPI()
 
 
 app.state.limiter = limiter
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173/","https://www.mechmania.ca/", "https://mechmania.ca/"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 
 
 class Item(BaseModel):
@@ -65,3 +57,12 @@ async def Handler405(request, exc: HTTPException):
 @app.exception_handler(RateLimitExceeded)
 async def HandlerRateLimit(request, exc):
     return Response(status_code=200,content=json.dumps({'status':429,'message':'Too many requests'}))
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173/","https://www.mechmania.ca/", "https://mechmania.ca/"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)

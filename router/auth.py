@@ -52,7 +52,7 @@ def auth():
     # Save the credentials for the next run
 
     db.collection('Auth').document('Tokens').update({'Gmail_API':creds.to_json()})
-  
+    
   return creds
 
 

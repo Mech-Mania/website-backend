@@ -61,6 +61,7 @@ async def submitEmail(request:Request):
     # Get Creds from auth.py
     print('made it to here')
     creds = auth()
+    print('made it past auth')
     prevList = db.collection('emails').document('emails').get().to_dict() or {}
 
     if email in prevList['val']:

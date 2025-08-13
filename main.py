@@ -18,7 +18,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://www.mechmania.ca", "https://mechmania.ca"],
+    allow_origins=["https://www.mechmania.ca", "https://mechmania.ca", "http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -59,9 +59,7 @@ async def submitEmail(request:Request):
     except:
         raise HTTPException(status_code=400, detail='Invalid email format')
     # Get Creds from auth.py
-    print('made it to here')
     creds = auth()
-    print('made it past auth')
     prevList = db.collection('emails').document('emails').get().to_dict() or {}
 
     if email in prevList['val']:
@@ -111,7 +109,7 @@ async def submitEmail(request:Request):
         .send(userId="me", body=message)
         .execute()
     )
-    
+    print('made it to here 3')
     return Response(json.dumps({'status':200,'message':'Success! Check your email.'}), status_code=200, headers={'Content-Type':'application/json'})
 
 #############################################################################################

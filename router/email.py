@@ -3,13 +3,14 @@ from pydantic import BaseModel, validate_email
 from fastapi import APIRouter, HTTPException, Response, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 import os, base64
+from google.cloud import firestore
 from dotenv import load_dotenv
 from .auth import auth, build, HttpError, checkPassword, db, PasswordSubmission
 from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import email.utils
-import json, datetime
+import json, datetime, asyncio
 
 # gather credentials and initialize firestore ##
 load_dotenv('.env')
@@ -104,7 +105,8 @@ async def submitEmail(request:Request):
     return Response(json.dumps({'message':'Success, check your email.'}), status_code=200, headers={'Content-Type':'application/json'})
 
 #############################################################################################
-# from starlette.status import HT
+
+
 @EmailRouter.get("/verify")
 async def verifyEmail(ID:str=''):
     print(len(ID), ID)
@@ -118,14 +120,23 @@ async def verifyEmail(ID:str=''):
     
     email = storedIDs[ID]['email']
 
-    # maybe run some of this in a transaction
-    prevList = db.collection('emails').document('testemails').get().to_dict() or {}
-    if email in prevList:
-        return RedirectResponse(url=f"https://mechmania.ca/valid?ID={ID}",status_code=307) # add something for if previously existing
+    @firestore.transactional
+    def runTransaction(transaction):
+
+        docRef = db.collection('emails').document('emails')
+        prevList = docRef.get(transaction=transaction).to_dict() or {}
+        if email in prevList:
+            return {'end':True, 'redir':RedirectResponse(url=f"https://mechmania.ca/valid?ID={ID}",status_code=307)}
+        
+        transaction.update(docRef,{'val':[email]+prevList['val']})
+        return {'end':False, 'redir':RedirectResponse(url=f"https://mechmania.ca/valid?ID={ID}",status_code=307)}
     
-    db.collection('emails').document('testemails').update({'val':[email]+prevList['val']})
+    response = runTransaction(db.transaction())
+    if response['end']:
+        return response['redir']
 
 
+    
     # send new email here
 
 
@@ -168,4 +179,28 @@ def buildEmail(To='',From='',Subject='',Content='',Name='', CID='logoA1B2C3'):
 
 #############################################################################################
 
+
+async def rollingTempPurge():
+    """Purges everything in the needvalidation section that is over two hours old give or take a half hour. Doesnt work too well around the midnight times but who the hell will be registering then for our usecase"""
+
+    temp = [i for i in range(24)]
+    @firestore.transactional
+    def runTransaction(transaction):
+        docRef = db.collection('emails').document('validationRequired')
+        snapshot = docRef.get(transaction=transaction).to_dict() or {}
+        
+        for tempData in [x for x in snapshot.keys()]:
+            if temp[datetime.datetime.now().hour-2] > int(snapshot[tempData]['time']):
+                del snapshot[tempData]
+        transaction.set(docRef,snapshot)
+
+    runTransaction(db.transaction())
+    while True:
+        await asyncio.sleep(7200)
+        runTransaction(db.transaction())
+        
+
+@EmailRouter.on_event('startup')
+def runstuff():
+    asyncio.create_task(rollingTempPurge())
 

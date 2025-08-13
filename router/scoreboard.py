@@ -55,7 +55,7 @@ async def setBoard(request:Request, passwordSubmission:PasswordSubmission):
     except KeyError as e:
         return HTTPException(422, detail="Missing fields")
     except Exception as e:
-        return HTTPException(500, detail=f"Internal Server Error")
+        return HTTPException(500, detail=f"Internal Server Error{e}")
     
     return Response(status_code=200,content="Success",headers={'content-type':'text/plain'})
 

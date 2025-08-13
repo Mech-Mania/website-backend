@@ -8,28 +8,27 @@ VisitsRouter = APIRouter()
 @VisitsRouter.put("/visits")
 def IncrementVisits():
     try:
-        docRef = db.collection('analytics').document('visits')
-        transaction = db.transaction()
         @firestore.transactional
-        def runTransaction(transaction,docRef):
+        def runTransaction(transaction=db.transaction()):
+                docRef = db.collection('analytics').document('visits')
                 time = datetime.datetime.now()
                 # key consists of <year><month><day>. the K at the start is so firebase accepts it
                 key = f'K{"{:04d}".format(time.year)}{"{:02d}".format(time.month)}{"{:02d}".format(time.day)}'
-
                 if not docRef:
                     #if no doc we want to set it
-                    db.collection('analytics').document('visits').set({ key: 1 })
+                    transaction.set(docRef,{key:1})
                 else:
+
                     # if doc exists we want to see if current key exists
-                    snapshot = docRef.get(transaction=transaction)
+                    snapshot = docRef.get(transaction=transaction) or {}
                     new_value = 1
                     try:
                         new_value = snapshot.get(key) + 1
                     except Exception as e:
-                        return e
+                        ...
                     transaction.update(docRef, {key: new_value})
 
-        runTransaction(transaction,docRef)
+        runTransaction(db.transaction())
     except Exception as e:
         return Response(status_code=500)
 

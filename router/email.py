@@ -122,7 +122,7 @@ async def verifyEmail(ID:str=''):
     storedIDs = db.collection('emails').document('validationRequired').get().to_dict() or {}
 
     if ID not in storedIDs.keys():
-        return RedirectResponse(url="https://mechmania.ca/emailLanding?ID={ID}",status_code=307)
+        return RedirectResponse(url=f"https://mechmania.ca/emailLanding?ID={ID}",status_code=307)
     
     email = storedIDs[ID]['email']
     @firestore.transactional

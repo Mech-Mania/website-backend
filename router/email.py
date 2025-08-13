@@ -55,7 +55,7 @@ async def submitEmail(request:Request):
         raise HTTPException(status_code=400, detail='No email provided')
     
     try:
-        name, email = validate_email(req['content'])
+        name, email = req['content'].split('@')
     except:
         raise HTTPException(status_code=400, detail='Invalid email format')
 

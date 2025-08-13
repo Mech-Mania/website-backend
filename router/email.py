@@ -100,7 +100,7 @@ async def submitEmail(request:Request):
         <br>
         <img src='cid:logoA1B2C3' />
     """
-
+    print('made it to here 2')
     email_message = buildEmail(f"{email}","organizers@mechmania.ca","NoReply Register Email",html,'Mechmania Team')
     encoded_message = base64.urlsafe_b64encode(email_message.as_bytes()).decode()
     message = {'raw': encoded_message}

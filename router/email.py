@@ -1,6 +1,7 @@
-from router.misc import getAndorHTML
+from router.misc import getAndorHTML, generate_random_string
 from pydantic import BaseModel, validate_email
 from fastapi import APIRouter, HTTPException, Response, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 import os, base64
 from dotenv import load_dotenv
 from .auth import auth, build, HttpError, checkPassword, db, PasswordSubmission
@@ -8,7 +9,7 @@ from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import email.utils
-import json
+import json, datetime
 
 # gather credentials and initialize firestore ##
 load_dotenv('.env')
@@ -48,32 +49,49 @@ async def submitEmail(request:Request):
         raise HTTPException(status_code=400, detail='No email provided')
     
     try:
-        email = validate_email(req['content'])[1]
+        name, email = validate_email(req['content'])
     except:
         raise HTTPException(status_code=400, detail='Invalid email format')
 
     # Get Creds from auth.py
     creds = auth()
 
+    storedIDs = db.collection('emails').document('validationRequired').get().to_dict() or {}
+
+    time = datetime.datetime.now().hour
+    key = generate_random_string(128)
+
+    while key in storedIDs.keys():
+        key = generate_random_string(128)
+    
+    data = {
+        "time":time,
+        "email":email
+    }
+    db.collection('emails').document('validationRequired').update({key:data})
+    link = f'api.mechmania.ca/verify?ID={key}'
+
     try:
     # Call the Gmail API
         service = build("gmail", "v1", credentials=creds)
 
-    
-    #
     except HttpError as e:
         raise HTTPException(e.status_code, e.error_details)
-    img_data = open('public/mechmania.png', 'rb').read()
+    
     html = f"""
-        Hi There! This is a testing message meant to show that you have registered your email via our newsletter! If you would like to confirm, please click this link:<br>
-        <a href="{'mechmania.ca'}">{'mechmania.ca'}</a> <br> <br>
+        Hi There {name}! Thanks for taking an interest in MechMania! To verify that you own this email and proceed, please click the following link: <br>
+        <a href="{link}">{f'mechmania.ca/verify/{key}'}</a> <br> <br>
+
         If this was not you, you can safely ignore this email.<br> <br>
         Thanks,<br>
         Mechmania Team.<br> <br>
+        <i>Please do not reply to this email</i>
+        <br>
+        <br>
         <img src='cid:logoA1B2C3' />
     """
 
-    email_message = buildEmail(f"{email}","organizers@mechmania.ca","Automated Newsletter Confirmation",html,'Mechmania Team')
+    email_message = buildEmail(f"{email}","organizers@mechmania.ca","NoReply Register Email",html,'Mechmania Team')
     encoded_message = base64.urlsafe_b64encode(email_message.as_bytes()).decode()
     message = {'raw': encoded_message}
     send_message = (
@@ -86,7 +104,38 @@ async def submitEmail(request:Request):
     return Response(json.dumps({'message':'Success, check your email.'}), status_code=200, headers={'Content-Type':'application/json'})
 
 #############################################################################################
+# from starlette.status import HT
+@EmailRouter.get("/verify")
+async def verifyEmail(ID:str=''):
+    print(len(ID), ID)
+    if len(ID) != 128:
+        return HTMLResponse(content=getAndorHTML(),status_code=422)
+    
+    storedIDs = db.collection('emails').document('validationRequired').get().to_dict() or {}
 
+    if ID not in storedIDs.keys():
+        return RedirectResponse(url="https://mechmania.ca/invalidKey",status_code=307)
+    
+    email = storedIDs[ID]['email']
+
+    # maybe run some of this in a transaction
+    prevList = db.collection('emails').document('testemails').get().to_dict() or {}
+    if email in prevList:
+        return RedirectResponse(url=f"https://mechmania.ca/valid?ID={ID}",status_code=307) # add something for if previously existing
+    
+    db.collection('emails').document('testemails').update({'val':[email]+prevList['val']})
+
+
+    # send new email here
+
+
+    return RedirectResponse(url=f"https://mechmania.ca/valid?ID={ID}",status_code=307)
+
+    
+
+    
+
+#############################################################################################
 def buildEmail(To='',From='',Subject='',Content='',Name='', CID='logoA1B2C3'):
     # build email use MIME
 
@@ -116,3 +165,7 @@ def buildEmail(To='',From='',Subject='',Content='',Name='', CID='logoA1B2C3'):
         message.attach(mime_img)
 
     return message
+
+#############################################################################################
+
+

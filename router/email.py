@@ -58,8 +58,9 @@ async def submitEmail(request:Request):
         name, email = req['content'].split('@')
     except:
         raise HTTPException(status_code=400, detail='Invalid email format')
-
+    print('made it to here')
     # Get Creds from auth.py
+    print('made it to here')
     creds = auth()
     prevList = db.collection('emails').document('emails').get().to_dict() or {}
 

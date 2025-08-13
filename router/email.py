@@ -125,7 +125,7 @@ async def verifyEmail(ID:str=''):
     storedIDs = db.collection('emails').document('validationRequired').get().to_dict() or {}
 
     if ID not in storedIDs.keys():
-        return RedirectResponse(url="https://mechmania.ca/invalidKey",status_code=307)
+        return RedirectResponse(url="https://mechmania.ca/emailLanding?ID={ID}",status_code=307)
     
     email = storedIDs[ID]['email']
 
@@ -136,10 +136,10 @@ async def verifyEmail(ID:str=''):
         prevList = docRef.get(transaction=transaction).to_dict() or {}
 
         if email in prevList['val']:
-            return {'end':True, 'redir':RedirectResponse(url=f"https://mechmania.ca/valid?ID={ID}",status_code=307)}
+            return {'end':True, 'redir':RedirectResponse(url=f"https://mechmania.ca/emailLanding?ID={ID}",status_code=307)}
         
         transaction.update(docRef,{'val':[email]+prevList['val']})
-        return {'end':False, 'redir':RedirectResponse(url=f"https://mechmania.ca/valid?ID={ID}",status_code=307)}
+        return {'end':False, 'redir':RedirectResponse(url=f"https://mechmania.ca/emailLanding?ID={ID}",status_code=307)}
     
     response = runTransaction(db.transaction())
     if response['end']:
@@ -188,10 +188,18 @@ The MechMania Team
     # send new email here
 
 
-    return RedirectResponse(url=f"https://mechmania.ca/valid?ID={ID}",status_code=307)
+    return RedirectResponse(url=f"https://mechmania.ca/emailLanding?ID={ID}",status_code=307)
 
+
+
+@EmailRouter.get("/checkID")
+async def verifyID(ID:str=''):
     
-
+    storedIDs = db.collection('emails').document('validationRequired').get().to_dict() or {}
+    if ID not in storedIDs.keys():
+        return Response(status_code=200,content=json.dumps({'verified':False}))
+    
+    return Response(status_code=200,content=json.dumps({'verified':True}))
     
 
 #############################################################################################
@@ -229,16 +237,16 @@ def buildEmail(To='',From='',Subject='',Content='',Name='', CID='logoA1B2C3'):
 
 
 async def rollingTempPurge():
-    """Purges everything in the needvalidation section that is over two hours old give or take a half hour. Doesnt work too well around the midnight times but who the hell will be registering then for our usecase"""
-
+    
     temp = [i for i in range(24)]
     @firestore.transactional
     def runTransaction(transaction):
         docRef = db.collection('emails').document('validationRequired')
         snapshot = docRef.get(transaction=transaction).to_dict() or {}
-        
         for tempData in [x for x in snapshot.keys()]:
             if temp[datetime.datetime.now().hour-2] > int(snapshot[tempData]['time']):
+                del snapshot[tempData]
+            elif int(snapshot[tempData]['time']) > datetime.datetime.now().hour:
                 del snapshot[tempData]
         transaction.set(docRef,snapshot)
 

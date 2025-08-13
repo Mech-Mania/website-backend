@@ -11,6 +11,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import email.utils
 import json, datetime, asyncio
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 # gather credentials and initialize firestore ##
 load_dotenv('.env')
@@ -18,6 +20,8 @@ load_dotenv('.env')
 #############################################################################################
 
 EmailRouter = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
+
 
 class EmailSubmitRequest(BaseModel):
     content:str
@@ -43,6 +47,7 @@ def getEmails(passwordSubmission:PasswordSubmission = PasswordSubmission(passwor
 #############################################################################################
 
 @EmailRouter.post("/emails/submit")
+@limiter.limit("5/minute")
 async def submitEmail(request:Request):
     
     req = (await request.json())
@@ -56,6 +61,10 @@ async def submitEmail(request:Request):
 
     # Get Creds from auth.py
     creds = auth()
+    prevList = db.collection('emails').document('emails').get().to_dict() or {}
+
+    if email in prevList['val']:
+        return Response(json.dumps({'status':400,'message':'Your email is already in our emailing list!'}), status_code=200, headers={'Content-Type':'application/json'})
 
     storedIDs = db.collection('emails').document('validationRequired').get().to_dict() or {}
 
@@ -102,13 +111,14 @@ async def submitEmail(request:Request):
         .execute()
     )
     
-    return Response(json.dumps({'message':'Success, check your email.'}), status_code=200, headers={'Content-Type':'application/json'})
+    return Response(json.dumps({'status':200,'message':'Success! Check your email.'}), status_code=200, headers={'Content-Type':'application/json'})
 
 #############################################################################################
 
 
 @EmailRouter.get("/verify")
 async def verifyEmail(ID:str=''):
+    creds = auth()
     if len(ID) != 128:
         return HTMLResponse(content=getAndorHTML(),status_code=422)
     
@@ -134,6 +144,44 @@ async def verifyEmail(ID:str=''):
     response = runTransaction(db.transaction())
     if response['end']:
         return response['redir']
+
+
+    name,email = validate_email(email)
+
+    try:
+    # Call the Gmail API
+        service = build("gmail", "v1", credentials=creds)
+
+    except HttpError as e:
+        raise HTTPException(e.status_code, e.error_details)
+    
+    html = f"""
+        Hello {name}!, <br>
+You are now a part of the MechMania Emailing list! 
+<br><br>
+If you are a student or teacher interested in competing, please complete <a href="https://docs.google.com/forms/d/1y7HCRmqyI9NbTK-SGDF0p1iFNeYG5clBJTr6lruMvDE">this form<a/> or have your club representatives submit it to register a team.
+<br><br>
+    This year, we will be running at The University of Waterloo’s Robohub on May 8, 2026. We typically provide the kits a few months in advance to allow your team time to learn, design and build your robot. If you are familiar with robotics or are a beginner, we can provide help in various ways, including lessons on a requested topic or a quick email explanation. In the coming months, a MechMania information document and this year’s schedule will be shared with you. We will contact you further with more information on kits, preparation, and exact details closer to the date. In the meantime, stay updated on any new developments in the competition by following us on Instagram and YouTube.
+<br><br>
+    If you have any questions or sponsorships inquiries please emails back through this email thread.
+    <br>
+    <br>
+Best regards,
+The MechMania Team
+<br><br>
+        <img src='cid:logoA1B2C3' />
+    """
+
+    email_message = buildEmail(f"{email}","organizers@mechmania.ca","Welcome to Mechmania!",html,'Mechmania Team')
+    encoded_message = base64.urlsafe_b64encode(email_message.as_bytes()).decode()
+    message = {'raw': encoded_message}
+    send_message = (
+        service.users()
+        .messages()
+        .send(userId="me", body=message)
+        .execute()
+    )
+
 
 
 

@@ -5,15 +5,18 @@ from pydantic import BaseModel
 from fastapi.responses import HTMLResponse
 
 # routers
-from router.email import EmailRouter
+from router.email import EmailRouter, limiter
 from router.visits import VisitsRouter
 from router.scoreboard import ScoreboardRouter
 from fastapi.middleware.cors import CORSMiddleware
 from router.auth import checkPassword, PasswordSubmission
 from router.misc import getAndorHTML
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 app = FastAPI()
 
 
+app.state.limiter = limiter
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173","https://mechmania.ca"],
@@ -48,19 +51,17 @@ def verifyPassword(passwordSubmission:PasswordSubmission):
     return Response(status_code=200 if result else 401,content=json.dumps({'result':result}), headers={'content-type':'application/json'})
 
 # include routers
+#############################################################################################
+app.include_router(ScoreboardRouter)
 app.include_router(EmailRouter)
 app.include_router(VisitsRouter)
-app.include_router(ScoreboardRouter)
-#############################################################################################
-
 # Code for displaying a quote from my favourite TV show (Andor) whenever a user is browsing normally
 
-@app.exception_handler(404)
-async def Handler404(request, exc: HTTPException):
-    return HTMLResponse(content=getAndorHTML(), status_code=404)
 
 @app.exception_handler(405)
 async def Handler405(request, exc: HTTPException):
     return HTMLResponse(content=getAndorHTML(), status_code=405)
 
-
+@app.exception_handler(RateLimitExceeded)
+async def HandlerRateLimit(request, exc):
+    return Response(status_code=200,content=json.dumps({'status':429,'message':'Too many requests'}))

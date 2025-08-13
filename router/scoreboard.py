@@ -5,7 +5,7 @@ from .auth import db, PasswordSubmission, checkPassword
 from google.cloud import firestore
 import json
 
-
+# get the new auth key
 ScoreboardRouter = APIRouter()
 @ScoreboardRouter.put("/scoreboard")
 def getBoard():

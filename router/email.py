@@ -109,7 +109,6 @@ async def submitEmail(request:Request):
 
 @EmailRouter.get("/verify")
 async def verifyEmail(ID:str=''):
-    print(len(ID), ID)
     if len(ID) != 128:
         return HTMLResponse(content=getAndorHTML(),status_code=422)
     
@@ -125,7 +124,8 @@ async def verifyEmail(ID:str=''):
 
         docRef = db.collection('emails').document('emails')
         prevList = docRef.get(transaction=transaction).to_dict() or {}
-        if email in prevList:
+
+        if email in prevList['val']:
             return {'end':True, 'redir':RedirectResponse(url=f"https://mechmania.ca/valid?ID={ID}",status_code=307)}
         
         transaction.update(docRef,{'val':[email]+prevList['val']})
@@ -136,7 +136,7 @@ async def verifyEmail(ID:str=''):
         return response['redir']
 
 
-    
+
     # send new email here
 
 

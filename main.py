@@ -63,6 +63,10 @@ app.include_router(VisitsRouter)
 async def Handler405(request, exc: HTTPException):
     return HTMLResponse(content=getAndorHTML(), status_code=405)
 
+@app.exception_handler(404)
+async def Handler404(request, exc: HTTPException):
+    return HTMLResponse(content=getAndorHTML(), status_code=404)
+
 @app.exception_handler(RateLimitExceeded)
 async def HandlerRateLimit(request, exc):
     return Response(status_code=200,content=json.dumps({'status':429,'message':'Too many requests'}))

@@ -17,13 +17,9 @@ def getBoard():
         enabled = docRef3.get().to_dict() or {'scoreboard':False}
         enabled = enabled['scoreboard']
 
-        if enabled:
-            games = docRef.get().to_dict() or {'Data':{},'Names':[],'Points':{},'Settings':{}}
+        games = docRef.get().to_dict() or {'Data':{},'Names':[],'Points':{},'Settings':{}}
 
-            teams = docRef2.get().to_dict() or {}
-        else:
-            games = {'Data':{},'Names':[],'Points':{},'Settings':{}}
-            teams = {}
+        teams = docRef2.get().to_dict() or {}
 
 
     except Exception as e:

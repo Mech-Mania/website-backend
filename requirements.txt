@@ -1,4 +1,5 @@
 fastapi
+fastapi[standard]
 slowapi
 uvicorn
 firebase-admin

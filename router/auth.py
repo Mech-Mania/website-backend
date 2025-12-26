@@ -11,16 +11,15 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-import google.cloud.firestore
 import json, os
 from dotenv import load_dotenv
 
 
 
 #load firestore
-load_dotenv('.env')
-KeyString:str = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY') or '{}'
-db = google.cloud.firestore.Client.from_service_account_info(json.loads(KeyString))
+_=load_dotenv('.env')
+db = None # todo init DB
+
 #load email client
 # If modifying these scopes, delete the file token.json or the token in environment
 SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
@@ -28,8 +27,8 @@ GMAIL_SERVICE_ACCOUNT_KEY = json.loads(os.environ.get('GMAIL_SERVICE_ACCOUNT_KEY
 
 
 def auth():
-  load = db.collection('Auth').document('Tokens').get(['Gmail_API']).to_dict() or {}
-  TOKEN = load["Gmail_API"]
+  # TODO set token to loaded creds from DB
+  TOKEN = None
   """Runs to grab cred to do executive actions"""
   creds = None
   # The file token.json stores the user's access and refresh tokens, and is
@@ -39,7 +38,6 @@ def auth():
     creds = Credentials.from_authorized_user_info(json.loads(TOKEN),SCOPES)
 
   # If there are no (valid) credentials available, let the user log in.
-
 
   if not creds or not creds.valid:
 
@@ -51,7 +49,7 @@ def auth():
       creds = flow.run_local_server(port=62800, access_type='offline', include_granted_scopes=False)
     # Save the credentials for the next run
 
-    db.collection('Auth').document('Tokens').update({'Gmail_API':creds.to_json()})
+    # TODO - make the system auto-add email creds to DB
     
   return creds
 

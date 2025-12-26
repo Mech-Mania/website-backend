@@ -1,12 +1,10 @@
 import json
-from typing import Union
 from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel
 from fastapi.responses import HTMLResponse
 
 # routers
 from router.email import EmailRouter, limiter
-from router.visits import VisitsRouter
 from router.scoreboard import ScoreboardRouter
 from starlette.middleware.cors import CORSMiddleware
 from router.auth import checkPassword, PasswordSubmission
@@ -31,7 +29,7 @@ app.state.limiter = limiter
 class Item(BaseModel):
     name: str
     price: float
-    is_offer: Union[bool, None] = None
+    is_offer: bool | None = None
 #
 
 @app.get("/")
@@ -55,7 +53,6 @@ def verifyPassword(passwordSubmission:PasswordSubmission):
 #############################################################################################
 app.include_router(ScoreboardRouter)
 app.include_router(EmailRouter)
-app.include_router(VisitsRouter)
 # Code for displaying a quote from my favourite TV show (Andor) whenever a user is browsing normally
 
 

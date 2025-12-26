@@ -13,7 +13,7 @@ def getAndorHTML():
     return htmlContent
 
 
-def generate_random_string(length):
-    characters = string.ascii_letters + string.digits # Includes uppercase, lowercase letters, and digits
-    random_string = ''.join(random.choice(characters) for i in range(length))
+def generate_random_string(length:int):
+    characters:str = string.ascii_letters + string.digits # Includes uppercase, lowercase letters, and digits
+    random_string = ''.join(random.choice(characters) for _ in range(length))
     return random_string

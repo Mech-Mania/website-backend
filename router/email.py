@@ -1,6 +1,7 @@
+# This file definitely is a top priority for cleaning up and optimizing
 from router.misc import getAndorHTML, generate_random_string
 from pydantic import BaseModel, validate_email
-from fastapi import APIRouter, HTTPException, Response, Request
+from fastapi import APIRouter, FastAPI, HTTPException, Response, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 import os, base64
 from google.cloud import firestore
@@ -13,14 +14,15 @@ import email.utils
 import json, datetime, asyncio
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-
+from contextlib import asynccontextmanager
 # gather credentials and initialize firestore ##
-load_dotenv('.env')
+_=load_dotenv('.env')
 
 #############################################################################################
 
 EmailRouter = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
+
 
 
 class EmailSubmitRequest(BaseModel):
@@ -230,7 +232,7 @@ def buildEmail(To='',From='',Subject='',Content='',Name='', CID='logoA1B2C3'):
 
 #############################################################################################
 
-
+# todo refactor this code. I need to add something to clear but if worst comes to worst I can do it manually
 async def rollingTempPurge():
     
     temp = [i for i in range(24)]
@@ -249,9 +251,3 @@ async def rollingTempPurge():
     while True:
         await asyncio.sleep(7200)
         runTransaction(db.transaction())
-        
-
-@EmailRouter.on_event('startup')
-def runstuff():
-    asyncio.create_task(rollingTempPurge())
-

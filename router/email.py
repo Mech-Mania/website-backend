@@ -4,7 +4,7 @@ from pydantic import BaseModel, validate_email
 from fastapi import APIRouter, FastAPI, HTTPException, Response, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 import os, base64
-from typing import Any
+from typing import Any, List
 from dotenv import load_dotenv
 from .auth import auth, build, HttpError, checkPassword, db, PasswordSubmission
 from email.mime.image import MIMEImage
@@ -43,25 +43,9 @@ def getEmails(passwordSubmission:PasswordSubmission = PasswordSubmission(passwor
 
 @EmailRouter.post("/emails/submit")
 @limiter.limit("5/minute")
-async def submitEmail(request:Request):
-   #before I can continue here I need to configure the auth to store the email token on supabase
-    response = (
-        db.table("emails")
-        .select("*")
-        .execute()
-    )
+async def submitEmail(emailRaw:EmailSubmitRequest,request:Request):
+    # I need new sets of creds for all my email stuff. Probably the best thing to do for long-term support 
 
-
-    req:dict[str,str|int|None] = json.loads((await request.json()))
-    print(req.get("content"))
-    if req['content'] is None:
-        raise HTTPException(status_code=400, detail='No email provided')
-    
-    try:
-        name:str = str(req['content']).split('@')[0]
-        email:str = str(req['content'])
-    except:
-        raise HTTPException(status_code=400, detail='Invalid email format')
     # Get Creds from auth.py
     creds = auth()
     try:
@@ -71,14 +55,41 @@ async def submitEmail(request:Request):
     except HttpError as e:
         raise HTTPException(e.status_code, e.error_details)
     
-    key = generate_random_string(128)
-    
 
-    link = f'api.mechmania.ca/verify?ID={key}'
+    # edge cases where email should fail
+    if emailRaw.content == "":
+        raise HTTPException(status_code=400, detail='No email provided')
+    
+    try:
+        name:str = emailRaw.content.split('@')[0]
+        email:str = emailRaw.content
+    except:
+        raise HTTPException(status_code=400, detail='Invalid email format')
+   
+    
+    # Check if email is already in table and configure a hashkey accordingly
+    identicalQuery:List[Any] = db.table("emails").select("*").eq("username",emailRaw.content).execute().data
+    
+    random_id:str = generate_random_string(5)
+    hash_id:int = hash(tuple([email,random_id]))
+    if len(identicalQuery) > 0: # will only ever be 0 or 1 because name is set as primary key
+        if identicalQuery[0].get('verified'):
+            raise HTTPException(status_code=400, detail='Email already on emailing list')
+        else: # If not verified we can send an email again
+            random_id = identicalQuery[0].get('random_id')
+            hash_id = hash(tuple([email,random_id]))
+    else: 
+        db.table("emails").upsert({"name":email, "random_id":random_id, "verified":False})
+
+
+
+            
+
+    link = f'api.mechmania.ca/verify?ID={hash_id}'
 
     html = f"""
         Hi There {name}! Thanks for taking an interest in MechMania! To verify that you own this email and proceed, please click the following link: <br>
-        <a href="{link}">{f'mechmania.ca/verify/{key}'}</a> <br> <br>
+        <a href="{link}">{f'mechmania.ca/verify/{hash_id}'}</a> <br> <br>
 
         If this was not you, you can safely ignore this email.<br> <br>
         Thanks,<br>
@@ -90,6 +101,9 @@ async def submitEmail(request:Request):
     """
     email_message = buildEmail(f"{email}","organizers@mechmania.ca","NoReply Register Email",html,'Mechmania Team')
     sendEmail(email_message,service)
+    
+    #email was sent so must add to supabase
+    
 
     return Response(json.dumps({'status':200,'message':'Success! Check your email.'}), status_code=200, headers={'Content-Type':'application/json'})
 
@@ -138,12 +152,11 @@ The MechMania Team
  
 
 
-@EmailRouter.get("/checkID")
-async def verifyID(ID:str=''):
-    # unimplemented
-    return True
-
 #############################################################################################
+# Utilities
+#############################################################################################
+
+
 
 def sendEmail(message:MIMEMultipart,service:Any):
     encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()

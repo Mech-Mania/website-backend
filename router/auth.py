@@ -4,7 +4,7 @@
 # This 
 
 import os.path
-from typing import Any
+from typing import Any, List
 from pydantic import BaseModel
 from supabase import create_client, Client
 from google.auth.transport.requests import Request
@@ -33,16 +33,17 @@ db:Client = create_client(url,key)
 SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 GMAIL_SERVICE_ACCOUNT_KEY = json.loads(os.environ.get('GMAIL_SERVICE_ACCOUNT_KEY') or '{}')
 
-TOKEN = None
 def auth():
   # TODO set token to loaded creds from DB
   """Runs to grab cred to do executive actions"""
   creds = None
-  # The file token.json stores the user's access and refresh tokens, and is
-  # created automatically when the authorization flow completes for the first
-  # time.
-  if TOKEN:
-    creds = Credentials.from_authorized_user_info(json.loads(TOKEN),SCOPES)
+  db_data:List[Any] = db.table("tokens").select("value").eq("name","GMAIL_SERVICE_CREDS").execute().data
+  try:               Token = db_data[0].get('value')
+  except IndexError: Token = None
+
+  if Token:
+    print(Token)
+    creds = Credentials.from_authorized_user_info(json.loads(Token),SCOPES)
 
   # If there are no (valid) credentials available, let the user log in.
 
@@ -55,8 +56,12 @@ def auth():
       flow = InstalledAppFlow.from_client_config(GMAIL_SERVICE_ACCOUNT_KEY,SCOPES)
       creds = flow.run_local_server(port=62800, access_type='offline', include_granted_scopes=False)
     # Save the credentials for the next run
-
-    # TODO - make the system auto-add email creds to DB
+    response = (
+        db.table("tokens")
+        .upsert({"name":"GMAIL_SERVICE_CREDS", "value": creds.to_json()})
+        .execute()
+    )
+     
     
   return creds
 

@@ -44,8 +44,16 @@ def getEmails(passwordSubmission:PasswordSubmission = PasswordSubmission(passwor
 @EmailRouter.post("/emails/submit")
 @limiter.limit("5/minute")
 async def submitEmail(request:Request):
-    
-    req:dict[str,str|int|None] = (await request.json())
+   #before I can continue here I need to configure the auth to store the email token on supabase
+    response = (
+        db.table("emails")
+        .select("*")
+        .execute()
+    )
+
+
+    req:dict[str,str|int|None] = json.loads((await request.json()))
+    print(req.get("content"))
     if req['content'] is None:
         raise HTTPException(status_code=400, detail='No email provided')
     
@@ -64,7 +72,7 @@ async def submitEmail(request:Request):
         raise HTTPException(e.status_code, e.error_details)
     
     key = generate_random_string(128)
-
+    
 
     link = f'api.mechmania.ca/verify?ID={key}'
 

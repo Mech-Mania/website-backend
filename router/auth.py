@@ -6,6 +6,7 @@
 import os.path
 from typing import Any
 from pydantic import BaseModel
+from supabase import create_client, Client
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -15,20 +16,26 @@ import json, os
 from dotenv import load_dotenv
 
 
-
-#load firestore
+#load environment variables
 _=load_dotenv('.env')
-db = None # todo init DB
+
+# load supabase client
+url:str = os.environ.get("SUPABASE_URL") or ""
+key:str = os.environ.get("SUPABASE_KEY") or ""
+
+
+db:Client = create_client(url,key)
+
+
 
 #load email client
 # If modifying these scopes, delete the file token.json or the token in environment
 SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
 GMAIL_SERVICE_ACCOUNT_KEY = json.loads(os.environ.get('GMAIL_SERVICE_ACCOUNT_KEY') or '{}')
 
-
+TOKEN = None
 def auth():
   # TODO set token to loaded creds from DB
-  TOKEN = None
   """Runs to grab cred to do executive actions"""
   creds = None
   # The file token.json stores the user's access and refresh tokens, and is

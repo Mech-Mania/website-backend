@@ -203,12 +203,13 @@ def buildEmail(To='',From='',Subject='',Content='',Name='', CID='logoA1B2C3'):
     html_content = Content.replace("{{cid}}", CID)
     msg_html = MIMEText(html_content, 'html')
     msg_alternative.attach(msg_html)
-
+    
     # Attach the image
-    with open(os.getcwd()+'/public/mechmania.png', 'rb') as img:
-        mime_img = MIMEImage(img.read(), name=os.path.basename(os.getcwd()+'public/mechmania.png'))
+    filename:str = os.path.join(os.getcwd(),'public','mechmania.png')
+    with open(filename, 'rb') as img:
+        mime_img = MIMEImage(img.read(), name=os.path.basename(filename))
         mime_img.add_header('Content-ID', f'<{CID}>')  # Important!
-        mime_img.add_header('Content-Disposition', 'inline', filename=os.path.basename(os.getcwd()+'public/mechmania.png'))
+        mime_img.add_header('Content-Disposition', 'inline', filename=os.path.basename(filename))
         message.attach(mime_img)
 
     return message

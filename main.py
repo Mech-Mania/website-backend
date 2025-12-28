@@ -1,7 +1,7 @@
 import json
 from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 # routers
 from router.email import EmailRouter, limiter
@@ -23,6 +23,14 @@ app.add_middleware(
 
 
 app.state.limiter = limiter
+
+
+ 
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    # /vercel.svg is automatically served when included in the public/** directory.
+    return RedirectResponse("/mechmania.png", status_code=307)
+
 
 @app.get("/")
 def readRoot():

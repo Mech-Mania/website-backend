@@ -2,8 +2,8 @@ import json
 from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
-# routers
+#routers
+from router.misc import getAndorHTML
 from router.email import EmailRouter, limiter
 from router.scoreboard import ScoreboardRouter
 from starlette.middleware.cors import CORSMiddleware
@@ -23,8 +23,6 @@ app.add_middleware(
 
 
 app.state.limiter = limiter
-
-app.mount("/public", StaticFiles(directory="public"), name="public")
 
 @app.get("/")
 def readRoot():
@@ -48,6 +46,14 @@ def verifyPassword(passwordSubmission:PasswordSubmission):
 app.include_router(ScoreboardRouter)
 app.include_router(EmailRouter)
 
+
+@app.exception_handler(405)
+async def Handler405(request, exc: HTTPException):
+    return HTMLResponse(content=getAndorHTML(), status_code=405)
+
+@app.exception_handler(404)
+async def Handler404(request, exc: HTTPException):
+    return HTMLResponse(content=getAndorHTML(), status_code=404)
 
 @app.exception_handler(RateLimitExceeded)
 async def HandlerRateLimit(request, exc):

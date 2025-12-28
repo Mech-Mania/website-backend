@@ -157,8 +157,13 @@ The MechMania Team
     # send new email here
     return RedirectResponse(url=f"https://mechmania.ca/emailLanding?ID={ID}",status_code=307)
  
+@EmailRouter.get("/checkID")
+async def checkEmailID(ID:str=''):
+    queryData:Any = db.table('emails').select('verified').eq('random_id',ID).execute().data
+    if len(queryData) == 0: # no match
+        return Response(json.dumps({"verified":False}),status_code=200,headers={"Content-Type":"application/json"})
 
-
+    return Response(json.dumps({"verified":queryData[0].get('verified')}),status_code=200,headers={"Content-Type":"application/json"})
 #############################################################################################
 # Utilities
 #############################################################################################

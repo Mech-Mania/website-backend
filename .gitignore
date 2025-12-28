@@ -1,8 +1,9 @@
+# Just nice to not push these for the user's sake
 .venv
 __pycache__
-.env
 node_modules
 
 # THESE CAN NOT PUSHED TO GIT
+.env
 token.json
 credentials.json

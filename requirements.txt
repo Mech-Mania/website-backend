@@ -2,9 +2,8 @@ fastapi
 fastapi[standard]
 slowapi
 uvicorn
-firebase-admin
 dotenv
+supabase
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
-google-cloud-firestore

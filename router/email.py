@@ -1,9 +1,10 @@
-from router.misc import getAndorHTML, generate_random_string
+# This file definitely is a top priority for cleaning up and optimizing
+from router.misc import generate_random_string
 from pydantic import BaseModel, validate_email
-from fastapi import APIRouter, HTTPException, Response, Request
+from fastapi import APIRouter, FastAPI, HTTPException, Response, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 import os, base64
-from google.cloud import firestore
+from typing import Any, List
 from dotenv import load_dotenv
 from .auth import auth, build, HttpError, checkPassword, db, PasswordSubmission
 from email.mime.image import MIMEImage
@@ -13,9 +14,9 @@ import email.utils
 import json, datetime, asyncio
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-
+from contextlib import asynccontextmanager
 # gather credentials and initialize firestore ##
-load_dotenv('.env')
+_=load_dotenv('.env')
 
 #############################################################################################
 
@@ -23,9 +24,9 @@ EmailRouter = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
 
 
+
 class EmailSubmitRequest(BaseModel):
     content:str
-
 
 #############################################################################################
 
@@ -36,61 +37,56 @@ def getEmails(passwordSubmission:PasswordSubmission = PasswordSubmission(passwor
     if not checkPassword(passwordSubmission.password):
         raise HTTPException(status_code=401, detail='Password Incorrect')
 
-    documentRef = db.collection('emails').document('emails')
-
-    if documentRef is None:
-        raise HTTPException(status_code=500, detail='Database Error 00A. Please notify organizers@mechmania.ca.')
-    emails = documentRef.get().to_dict() or {'val':[]}
-
-    return Response(status_code=200,content=json.dumps({'message':'Success','emails':emails['val']}), headers={'Content-Type':'application/json'})
+    return Response(status_code=200,content=json.dumps({'message':'Success','emails':['testData','testData2']}), headers={'Content-Type':'application/json'})
 
 #############################################################################################
 
 @EmailRouter.post("/emails/submit")
 @limiter.limit("5/minute")
-async def submitEmail(request:Request):
-    
-    req = (await request.json())
-    if req['content'] is None:
-        raise HTTPException(status_code=400, detail='No email provided')
-    
-    try:
-        name = req['content'].split('@')[0]
-        email = req['content']
-    except:
-        raise HTTPException(status_code=400, detail='Invalid email format')
+async def submitEmail(emailRaw:EmailSubmitRequest,request:Request):
+
     # Get Creds from auth.py
     creds = auth()
-    prevList = db.collection('emails').document('emails').get().to_dict() or {}
-
-    if email in prevList['val']:
-        return Response(json.dumps({'status':400,'message':'Your email is already in our emailing list!'}), status_code=200, headers={'Content-Type':'application/json'})
-
-    storedIDs = db.collection('emails').document('validationRequired').get().to_dict() or {}
-
-    time = datetime.datetime.now().hour
-    key = generate_random_string(128)
-
-    while key in storedIDs.keys():
-        key = generate_random_string(128)
-    
-    data = {
-        "time":time,
-        "email":email
-    }
-    db.collection('emails').document('validationRequired').update({key:data})
-    link = f'api.mechmania.ca/verify?ID={key}'
-
     try:
     # Call the Gmail API
-        service = build("gmail", "v1", credentials=creds,cache_discovery=False)
+        service:Any = build("gmail", "v1", credentials=creds,cache_discovery=False)
 
     except HttpError as e:
         raise HTTPException(e.status_code, e.error_details)
     
+
+    # edge cases where email should fail
+    if emailRaw.content == "":
+        raise HTTPException(status_code=400, detail='No email provided')
+    
+    try:
+        name:str = emailRaw.content.split('@')[0]
+        email:str = emailRaw.content
+    except:
+        raise HTTPException(status_code=400, detail='Invalid email format')
+   
+    
+    # Check if email is already in table and configure a hashkey accordingly
+    identicalQuery:List[Any] = db.table("emails").select("*").eq("username",email).execute().data
+    
+    random_id:str = generate_random_string(20)
+    if len(identicalQuery) > 0: # will only ever be 0 or 1 because name is set as primary key
+        
+        if identicalQuery[0].get('verified'):
+            raise HTTPException(status_code=400, detail='Email already on emailing list')
+        else: # If not verified we can send an email again
+            random_id = identicalQuery[0].get('random_id')
+    else: 
+        _= db.table("emails").upsert({"username":email, "random_id":random_id, "verified":False}).execute()
+    
+
+            
+
+    link = f'api.mechmania.ca/verify?ID={random_id}'
+
     html = f"""
         Hi There {name}! Thanks for taking an interest in MechMania! To verify that you own this email and proceed, please click the following link: <br>
-        <a href="{link}">{f'mechmania.ca/verify/{key}'}</a> <br> <br>
+        <a href="{link}">{f'mechmania.ca/verify/{random_id}'}</a> <br> <br>
 
         If this was not you, you can safely ignore this email.<br> <br>
         Thanks,<br>
@@ -101,14 +97,10 @@ async def submitEmail(request:Request):
         <img src='cid:logoA1B2C3' />
     """
     email_message = buildEmail(f"{email}","organizers@mechmania.ca","NoReply Register Email",html,'Mechmania Team')
-    encoded_message = base64.urlsafe_b64encode(email_message.as_bytes()).decode()
-    message = {'raw': encoded_message}
-    send_message = (
-        service.users()
-        .messages()
-        .send(userId="me", body=message)
-        .execute()
-    )
+    sendEmail(email_message,service)
+    
+    #email was sent so must add to supabase
+    
     return Response(json.dumps({'status':200,'message':'Success! Check your email.'}), status_code=200, headers={'Content-Type':'application/json'})
 
 #############################################################################################
@@ -116,33 +108,16 @@ async def submitEmail(request:Request):
 
 @EmailRouter.get("/verify")
 async def verifyEmail(ID:str=''):
+    
+    queryResult:List[Any] = db.table('emails').select('username, verified').eq('random_id',ID).execute().data # return all usernames where the random_id matches.
+
+    if len(queryResult) == 0: # this means there were no hits on the database
+        return Response(json.dumps({'message':'Did not provide a valid ID tag'}),status_code=400,headers={'Content-Type':'application/json'})
+    
+    # queryResult being >1 is an edge case that happens in 1/ 52^20 of cases. So very neglible 
+
+    # init auth below query checking because it is a very expensive operation and we want to minimize usage
     creds = auth()
-    if len(ID) != 128:
-        return HTMLResponse(content=getAndorHTML(),status_code=422)
-    storedIDs = db.collection('emails').document('validationRequired').get().to_dict() or {}
-
-    if ID not in storedIDs.keys():
-        return RedirectResponse(url=f"https://mechmania.ca/emailLanding?ID={ID}",status_code=307)
-    
-    email = storedIDs[ID]['email']
-    @firestore.transactional
-    def runTransaction(transaction):
-
-        docRef = db.collection('emails').document('emails')
-        prevList = docRef.get(transaction=transaction).to_dict() or {}
-
-        if email in prevList['val']:
-            return {'end':True, 'redir':RedirectResponse(url=f"https://mechmania.ca/emailLanding?ID={ID}",status_code=307)}
-        
-        transaction.update(docRef,{'val':[email]+prevList['val']})
-        return {'end':False, 'redir':RedirectResponse(url=f"https://mechmania.ca/emailLanding?ID={ID}",status_code=307)}
-    
-    response = runTransaction(db.transaction())
-    if response['end']:
-        return response['redir']
-
-    name = email.split('@')[0]
-
     try:
     # Call the Gmail API
         service = build("gmail", "v1", credentials=creds,cache_discovery=False)
@@ -150,6 +125,13 @@ async def verifyEmail(ID:str=''):
     except HttpError as e:
         raise HTTPException(e.status_code, e.error_details)
     
+
+
+    email:str = queryResult[0].get('username')
+    name:str = email.split('@')[0]
+    verified:bool = queryResult[0].get('verified')
+
+
     html = f"""
         Hello {name}!, <br>
 You are now a part of the MechMania Emailing list! 
@@ -166,38 +148,41 @@ The MechMania Team
 <br><br>
         <img src='cid:logoA1B2C3' />
     """
+    if not verified:
+        email_message = buildEmail(f"{email}","organizers@mechmania.ca","Welcome to Mechmania!",html,'Mechmania Team')
+        sendEmail(email_message,service)
+        # If email sent then update status
+        _= db.table("emails").update({"verified":True}).eq('username',email).execute()
 
-    email_message = buildEmail(f"{email}","organizers@mechmania.ca","Welcome to Mechmania!",html,'Mechmania Team')
-    encoded_message = base64.urlsafe_b64encode(email_message.as_bytes()).decode()
-    message = {'raw': encoded_message}
-    send_message = (
+    # send new email here
+    return RedirectResponse(url=f"https://mechmania.ca/emailLanding?ID={ID}",status_code=307)
+ 
+@EmailRouter.get("/checkID")
+async def checkEmailID(ID:str=''):
+    queryData:Any = db.table('emails').select('verified').eq('random_id',ID).execute().data
+    if len(queryData) == 0: # no match
+        return Response(json.dumps({"verified":False}),status_code=200,headers={"Content-Type":"application/json"})
+
+    return Response(json.dumps({"verified":queryData[0].get('verified')}),status_code=200,headers={"Content-Type":"application/json"})
+#############################################################################################
+# Utilities
+#############################################################################################
+
+
+
+def sendEmail(message:MIMEMultipart,service:Any):
+    encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    wrapped_message = {'raw': encoded_message}
+    _ = (
         service.users()
         .messages()
-        .send(userId="me", body=message)
+        .send(userId="me", body=wrapped_message)
         .execute()
     )
 
+    ...
 
 
-
-    # send new email here
-
-
-    return RedirectResponse(url=f"https://mechmania.ca/emailLanding?ID={ID}",status_code=307)
- 
-
-
-@EmailRouter.get("/checkID")
-async def verifyID(ID:str=''):
-    
-    storedIDs = db.collection('emails').document('validationRequired').get().to_dict() or {}
-    if ID not in storedIDs.keys():
-        return Response(status_code=200,content=json.dumps({'verified':False}))
-    
-    return Response(status_code=200,content=json.dumps({'verified':True}))
-    
-
-#############################################################################################
 def buildEmail(To='',From='',Subject='',Content='',Name='', CID='logoA1B2C3'):
     # build email use MIME
 
@@ -228,30 +213,4 @@ def buildEmail(To='',From='',Subject='',Content='',Name='', CID='logoA1B2C3'):
 
     return message
 
-#############################################################################################
-
-
-async def rollingTempPurge():
-    
-    temp = [i for i in range(24)]
-    @firestore.transactional
-    def runTransaction(transaction):
-        docRef = db.collection('emails').document('validationRequired')
-        snapshot = docRef.get(transaction=transaction).to_dict() or {}
-        for tempData in [x for x in snapshot.keys()]:
-            if temp[datetime.datetime.now().hour-2] > int(snapshot[tempData]['time']):
-                del snapshot[tempData]
-            elif int(snapshot[tempData]['time']) > datetime.datetime.now().hour:
-                del snapshot[tempData]
-        transaction.set(docRef,snapshot)
-
-    runTransaction(db.transaction())
-    while True:
-        await asyncio.sleep(7200)
-        runTransaction(db.transaction())
-        
-
-@EmailRouter.on_event('startup')
-def runstuff():
-    asyncio.create_task(rollingTempPurge())
 

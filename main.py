@@ -1,16 +1,13 @@
 import json
-from typing import Union
 from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel
 from fastapi.responses import HTMLResponse
 
 # routers
 from router.email import EmailRouter, limiter
-from router.visits import VisitsRouter
 from router.scoreboard import ScoreboardRouter
 from starlette.middleware.cors import CORSMiddleware
 from router.auth import checkPassword, PasswordSubmission
-from router.misc import getAndorHTML
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 app = FastAPI()
@@ -27,19 +24,12 @@ app.add_middleware(
 
 app.state.limiter = limiter
 
-
-class Item(BaseModel):
-    name: str
-    price: float
-    is_offer: Union[bool, None] = None
-#
-
 @app.get("/")
 def readRoot():
     htmlContent = f"""
     <html>
         <body>
-            <p style='font-family: monospace;text-indent: initial;font-size: initial;tab-size: 4;border-spacing: 0px;overflow:wrap;'>{"It seems you've reached our API page! It's all used on the backend, so there won't be much here (other than maybe a few easter eggs), though if you want to peek around that's just fine by me."}</p>
+            <p style='font-family: monospace;text-indent: initial;font-size: initial;tab-size: 4;border-spacing: 0px;overflow:wrap;'>{"It seems you've reached our API page! It's all used on the backend, so there won't be much here, though if you want to peek around that's just fine by me."}</p>
         </body>
     </html>
     """
@@ -55,18 +45,8 @@ def verifyPassword(passwordSubmission:PasswordSubmission):
 #############################################################################################
 app.include_router(ScoreboardRouter)
 app.include_router(EmailRouter)
-app.include_router(VisitsRouter)
-# Code for displaying a quote from my favourite TV show (Andor) whenever a user is browsing normally
 
-
-@app.exception_handler(405)
-async def Handler405(request, exc: HTTPException):
-    return HTMLResponse(content=getAndorHTML(), status_code=405)
-
-@app.exception_handler(404)
-async def Handler404(request, exc: HTTPException):
-    return HTMLResponse(content=getAndorHTML(), status_code=404)
 
 @app.exception_handler(RateLimitExceeded)
 async def HandlerRateLimit(request, exc):
-    return Response(status_code=200,content=json.dumps({'status':429,'message':'Too many requests'}))
+    return Response(status_code=429,content=json.dumps({'status':429,'message':'Too many requests'}))

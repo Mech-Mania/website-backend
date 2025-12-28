@@ -205,10 +205,10 @@ def buildEmail(To='',From='',Subject='',Content='',Name='', CID='logoA1B2C3'):
     msg_alternative.attach(msg_html)
 
     # Attach the image
-    with open('/mechmania.png', 'rb') as img:
-        mime_img = MIMEImage(img.read(), name=os.path.basename('public/mechmania.png'))
+    with open('/static/mechmania.png', 'rb') as img:
+        mime_img = MIMEImage(img.read(), name=os.path.basename('static/mechmania.png'))
         mime_img.add_header('Content-ID', f'<{CID}>')  # Important!
-        mime_img.add_header('Content-Disposition', 'inline', filename=os.path.basename('public/mechmania.png'))
+        mime_img.add_header('Content-Disposition', 'inline', filename=os.path.basename('static/mechmania.png'))
         message.attach(mime_img)
 
     return message

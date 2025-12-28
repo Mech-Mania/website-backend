@@ -24,9 +24,6 @@ app.add_middleware(
 
 app.state.limiter = limiter
 
-with open('public/empty.txt') as file: # I have no idea why this does anything I assume it just loads the public folder but if I remove then error
-    file.read()
-
 @app.get("/")
 def readRoot():
     htmlContent = f"""

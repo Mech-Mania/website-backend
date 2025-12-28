@@ -6,6 +6,7 @@
         }
     ],  
     "routes": [
+        { "handle": "filesystem" },
         {
             "src":"/(.*)",
             "dest":"main.py"

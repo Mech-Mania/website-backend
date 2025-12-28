@@ -44,7 +44,6 @@ def getEmails(passwordSubmission:PasswordSubmission = PasswordSubmission(passwor
 @EmailRouter.post("/emails/submit")
 @limiter.limit("5/minute")
 async def submitEmail(emailRaw:EmailSubmitRequest,request:Request):
-    # I need new sets of creds for all my email stuff. Probably the best thing to do for long-term support 
 
     # Get Creds from auth.py
     creds = auth()
@@ -68,28 +67,26 @@ async def submitEmail(emailRaw:EmailSubmitRequest,request:Request):
    
     
     # Check if email is already in table and configure a hashkey accordingly
-    identicalQuery:List[Any] = db.table("emails").select("*").eq("username",emailRaw.content).execute().data
+    identicalQuery:List[Any] = db.table("emails").select("*").eq("username",email).execute().data
     
-    random_id:str = generate_random_string(5)
-    hash_id:int = hash(tuple([email,random_id]))
+    random_id:str = generate_random_string(20)
     if len(identicalQuery) > 0: # will only ever be 0 or 1 because name is set as primary key
+        
         if identicalQuery[0].get('verified'):
             raise HTTPException(status_code=400, detail='Email already on emailing list')
         else: # If not verified we can send an email again
             random_id = identicalQuery[0].get('random_id')
-            hash_id = hash(tuple([email,random_id]))
     else: 
-        db.table("emails").upsert({"name":email, "random_id":random_id, "verified":False})
-
-
+        _= db.table("emails").upsert({"username":email, "random_id":random_id, "verified":False}).execute()
+    
 
             
 
-    link = f'api.mechmania.ca/verify?ID={hash_id}'
+    link = f'api.mechmania.ca/verify?ID={random_id}'
 
     html = f"""
         Hi There {name}! Thanks for taking an interest in MechMania! To verify that you own this email and proceed, please click the following link: <br>
-        <a href="{link}">{f'mechmania.ca/verify/{hash_id}'}</a> <br> <br>
+        <a href="{link}">{f'mechmania.ca/verify/{random_id}'}</a> <br> <br>
 
         If this was not you, you can safely ignore this email.<br> <br>
         Thanks,<br>
@@ -104,7 +101,6 @@ async def submitEmail(emailRaw:EmailSubmitRequest,request:Request):
     
     #email was sent so must add to supabase
     
-
     return Response(json.dumps({'status':200,'message':'Success! Check your email.'}), status_code=200, headers={'Content-Type':'application/json'})
 
 #############################################################################################
@@ -113,8 +109,14 @@ async def submitEmail(emailRaw:EmailSubmitRequest,request:Request):
 @EmailRouter.get("/verify")
 async def verifyEmail(ID:str=''):
     
+    queryResult:List[Any] = db.table('emails').select('username, verified').eq('random_id',ID).execute().data # return all usernames where the random_id matches.
 
+    if len(queryResult) == 0: # this means there were no hits on the database
+        return Response(json.dumps({'message':'Did not provide a valid ID tag'}),status_code=400,headers={'Content-Type':'application/json'})
+    
+    # queryResult being >1 is an edge case that happens in 1/ 52^20 of cases. So very neglible 
 
+    # init auth below query checking because it is a very expensive operation and we want to minimize usage
     creds = auth()
     try:
     # Call the Gmail API
@@ -124,8 +126,10 @@ async def verifyEmail(ID:str=''):
         raise HTTPException(e.status_code, e.error_details)
     
 
-    name = "test"
 
+    email:str = queryResult[0].get('username')
+    name:str = email.split('@')[0]
+    verified:bool = queryResult[0].get('verified')
 
 
     html = f"""
@@ -144,9 +148,12 @@ The MechMania Team
 <br><br>
         <img src='cid:logoA1B2C3' />
     """
+    if not verified:
+        email_message = buildEmail(f"{email}","organizers@mechmania.ca","Welcome to Mechmania!",html,'Mechmania Team')
+        sendEmail(email_message,service)
+        # If email sent then update status
+        _= db.table("emails").update({"verified":True}).eq('username',email).execute()
 
-    email_message = buildEmail(f"{email}","organizers@mechmania.ca","Welcome to Mechmania!",html,'Mechmania Team')
-    sendEmail(email_message,service)
     # send new email here
     return RedirectResponse(url=f"https://mechmania.ca/emailLanding?ID={ID}",status_code=307)
  

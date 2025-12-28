@@ -11,6 +11,7 @@ from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import email.utils
+import requests
 import json, datetime, asyncio
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -205,12 +206,16 @@ def buildEmail(To='',From='',Subject='',Content='',Name='', CID='logoA1B2C3'):
     msg_alternative.attach(msg_html)
     
     # Attach the image
-    filename:str = 'public/mechmania.png'
-    with open(filename, 'rb') as img:
-        mime_img = MIMEImage(img.read(), name=os.path.basename(filename))
-        mime_img.add_header('Content-ID', f'<{CID}>')  # Important!
-        mime_img.add_header('Content-Disposition', 'inline', filename=os.path.basename(filename))
-        message.attach(mime_img)
+
+    url = 'https://mechmania.ca/emailSignature.png'
+    # Fetch the image data from the URL
+    response = requests.get(url)
+    
+    img = response.content
+    mime_img = MIMEImage(img, name='emailSignature.png')
+    mime_img.add_header('Content-ID', f'<{CID}>')  # Important!
+    mime_img.add_header('Content-Disposition', 'inline', filename='emailSignature.png')
+    message.attach(mime_img)
 
     return message
 

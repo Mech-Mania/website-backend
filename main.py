@@ -46,7 +46,7 @@ def verifyPassword(passwordSubmission:PasswordSubmission):
 app.include_router(ScoreboardRouter)
 app.include_router(EmailRouter)
 
-
+"""
 @app.exception_handler(405)
 async def Handler405(request, exc: HTTPException):
     return HTMLResponse(content=getAndorHTML(), status_code=405)
@@ -54,6 +54,7 @@ async def Handler405(request, exc: HTTPException):
 @app.exception_handler(404)
 async def Handler404(request, exc: HTTPException):
     return HTMLResponse(content=getAndorHTML(), status_code=404)
+"""
 
 @app.exception_handler(RateLimitExceeded)
 async def HandlerRateLimit(request, exc):

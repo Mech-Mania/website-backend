@@ -52,3 +52,9 @@ app.include_router(EmailRouter)
 @app.exception_handler(RateLimitExceeded)
 async def HandlerRateLimit(request, exc):
     return Response(status_code=429,content=json.dumps({'status':429,'message':'Too many requests'}))
+
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

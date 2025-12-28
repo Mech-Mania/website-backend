@@ -6,7 +6,11 @@
         }
     ],  
     "routes": [
-        { "handle": "filesystem" },
+        
+        {
+            "src": "/(*\\.png)",
+            "dest": "/public/$1"
+        },
         {
             "src":"/(.*)",
             "dest":"main.py"

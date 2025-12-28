@@ -25,9 +25,8 @@ from dotenv import load_dotenv
 _=load_dotenv('.env')
 
 # load supabase client
-url:str = os.environ.get("SUPABASE_URL") or ""
-key:str = os.environ.get("SUPABASE_KEY") or ""
-
+url:str = os.environ["SUPABASE_URL"] or ""
+key:str = os.environ["SUPABASE_KEY"] or ""
 
 db:Client = create_client(url,key)
 
@@ -36,8 +35,7 @@ db:Client = create_client(url,key)
 #load email client
 # If modifying these scopes, delete the file token.json or the token in environment
 SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
-imp:Any = os.environ.get('GMAIL_SERVICE_ACCOUNT_KEY')
-GMAIL_SERVICE_ACCOUNT_KEY:Any = json.loads(imp)
+GMAIL_SERVICE_ACCOUNT_KEY:Any = json.loads(os.environ['GMAIL_SERVICE_ACCOUNT_KEY'] or '{}')
 
 def auth():
   # TODO set token to loaded creds from DB
@@ -75,5 +73,5 @@ class PasswordSubmission(BaseModel):
     password:str
 
 def checkPassword(password:str):
-  return password == os.environ.get('ADMIN_PASSWORD')
+  return password == os.environ['ADMIN_PASSWORD']
 

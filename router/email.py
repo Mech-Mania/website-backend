@@ -94,7 +94,7 @@ async def submitEmail(emailRaw:EmailSubmitRequest,request:Request):
         <i>Please do not reply to this email</i>
         <br>
         <br>
-        <img src='/mechmania.png' />
+        <img src='cid:logoA1B2C3' />
     """
     email_message = buildEmail(f"{email}","organizers@mechmania.ca","NoReply Register Email",html,'Mechmania Team')
     sendEmail(email_message,service)
@@ -205,14 +205,13 @@ def buildEmail(To='',From='',Subject='',Content='',Name='', CID='logoA1B2C3'):
     msg_alternative.attach(msg_html)
     
     # Attach the image
-    ''' 
     filename:str = 'public/mechmania.png'
     with open(filename, 'rb') as img:
         mime_img = MIMEImage(img.read(), name=os.path.basename(filename))
         mime_img.add_header('Content-ID', f'<{CID}>')  # Important!
         mime_img.add_header('Content-Disposition', 'inline', filename=os.path.basename(filename))
         message.attach(mime_img)
-    '''
+
     return message
 
 

@@ -2,7 +2,7 @@ import json
 from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel
 from fastapi.responses import HTMLResponse, RedirectResponse
-
+from fastapi.staticfiles import StaticFiles
 # routers
 from router.email import EmailRouter, limiter
 from router.scoreboard import ScoreboardRouter
@@ -24,7 +24,7 @@ app.add_middleware(
 
 app.state.limiter = limiter
 
-
+app.mount("/public", StaticFiles(directory="public"), name="public")
 
 @app.get("/")
 def readRoot():

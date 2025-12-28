@@ -36,7 +36,8 @@ db:Client = create_client(url,key)
 #load email client
 # If modifying these scopes, delete the file token.json or the token in environment
 SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
-GMAIL_SERVICE_ACCOUNT_KEY = json.loads(os.environ.get('GMAIL_SERVICE_ACCOUNT_KEY') or '{}')
+imp:Any = os.environ.get('GMAIL_SERVICE_ACCOUNT_KEY')
+GMAIL_SERVICE_ACCOUNT_KEY:Any = json.loads(imp)
 
 def auth():
   # TODO set token to loaded creds from DB

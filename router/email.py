@@ -85,7 +85,32 @@ def removeEmailStep1(emailRaw:EmailSubmitRequest):
     
     return Response(json.dumps({'status':200,'message':'Check your email.'}), status_code=200, headers={'Content-Type':'application/json'})
 
-    
+@EmailRouter.post('/unsubscribe')
+def removeEmailStep2(ID:str=''):
+    queryResult:List[Any] = db.table('emails').select('username, verified').eq('random_id',ID).execute().data # return all usernames where the random_id matches.
+
+    if len(queryResult) == 0: # this means there were no hits on the database
+        return Response(json.dumps({'message':'Did not provide a valid ID tag'}),status_code=400,headers={'Content-Type':'application/json'})
+    _=db.table('emails').delete().eq('random_id',ID).execute()
+
+    html_content = """
+    <html>
+    <head>
+        <script type="text/javascript">
+            window.onload = function() {
+                // This attempts to close the window.
+                // It will only succeed if the window was opened by a script.
+                window.close();
+            }
+        </script>
+    </head>
+    <body>
+        <p>Operation successful. This window should close automatically.</p>
+        <p>If it does not, you can safely close it manually.</p>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content, status_code=200)
 
 
 

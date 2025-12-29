@@ -37,8 +37,57 @@ def getEmails(passwordSubmission:PasswordSubmission = PasswordSubmission(passwor
     
     if not checkPassword(passwordSubmission.password):
         raise HTTPException(status_code=401, detail='Password Incorrect')
+    
+    queryData:Any = db.table('emails').select('username').eq('verified',True).execute().data
+    emails = []
+    for rawQuery in queryData:
+        emails.append(rawQuery.get('username'))
 
-    return Response(status_code=200,content=json.dumps({'message':'Success','emails':['testData','testData2']}), headers={'Content-Type':'application/json'})
+    return Response(status_code=200,content=json.dumps({'message':'Success','emails':emails}), headers={'Content-Type':'application/json'})
+
+
+@EmailRouter.post("/emails/requestUnsubscribe")
+@limiter.limit("3/minute")
+def removeEmailStep1(emailRaw:EmailSubmitRequest):
+    creds = auth()
+    try:
+    # Call the Gmail API
+        service:Any = build("gmail", "v1", credentials=creds,cache_discovery=False)
+
+    except HttpError as e:
+        raise HTTPException(e.status_code, e.error_details)
+
+    queryData:List[Any] = db.table("emails").select("*").eq("username",emailRaw.content).execute().data
+    if len(queryData) == 0:
+        return Response(content=json.dumps({'message':"Email not in emailing list"}), status_code=400, headers={'Content-Type':'application/json'})
+    
+    email = queryData[0].get('username')
+    random_id = queryData[0].get('random_id')
+
+    link = f'api.mechmania.ca/unsubscribe?ID={random_id}'
+
+    html = f"""
+        We are sorry to see you go! To verify that you own this email and proceed, please click the following link: <br>
+        <a href="{link}">{f'mechmania.ca/emails/unsubscribe/{random_id}'}</a> <br> This page will automatically close and you will be off the emailing list<br> <br>
+
+        If this was not you, you can safely ignore this email.<br> <br>
+        Thanks,<br>
+        Mechmania Team.<br> <br>
+        <i>Please do not reply to this email</i>
+        <br>
+        <br>
+        <img src='cid:logoA1B2C3' />
+    """
+    email_message = buildEmail(f"{email}","organizers@mechmania.ca","NoReply Unsubscribe Email",html,'Mechmania Team')
+    sendEmail(email_message,service)
+    
+    #email was sent so must add to supabase
+    
+    return Response(json.dumps({'status':200,'message':'Check your email.'}), status_code=200, headers={'Content-Type':'application/json'})
+
+    
+
+
 
 #############################################################################################
 

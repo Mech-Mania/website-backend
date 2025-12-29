@@ -32,7 +32,7 @@ class EmailSubmitRequest(BaseModel):
 #############################################################################################
 
 @EmailRouter.post("/emails")
-def getEmails(passwordSubmission:PasswordSubmission = PasswordSubmission(password='')):
+async def getEmails(passwordSubmission:PasswordSubmission = PasswordSubmission(password='')):
     """Checks password and if correct returns the emailing list from Firestore"""
     
     if not checkPassword(passwordSubmission.password):
@@ -48,7 +48,7 @@ def getEmails(passwordSubmission:PasswordSubmission = PasswordSubmission(passwor
 
 @EmailRouter.post("/emails/requestUnsubscribe")
 @limiter.limit("3/minute")
-def removeEmailStep1(emailRaw:EmailSubmitRequest):
+async def removeEmailStep1(emailRaw:EmailSubmitRequest, request:Request):
     creds = auth()
     try:
     # Call the Gmail API
@@ -85,8 +85,8 @@ def removeEmailStep1(emailRaw:EmailSubmitRequest):
     
     return Response(json.dumps({'status':200,'message':'Check your email.'}), status_code=200, headers={'Content-Type':'application/json'})
 
-@EmailRouter.post('/unsubscribe')
-def removeEmailStep2(ID:str=''):
+@EmailRouter.get('/unsubscribe')
+async def removeEmailStep2(ID:str=''):
     queryResult:List[Any] = db.table('emails').select('username, verified').eq('random_id',ID).execute().data # return all usernames where the random_id matches.
 
     if len(queryResult) == 0: # this means there were no hits on the database

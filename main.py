@@ -6,19 +6,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from router.email import EmailRouter, limiter
 from router.scoreboard import ScoreboardRouter
 from starlette.middleware.cors import CORSMiddleware
-from router.auth import checkPassword, PasswordSubmission, get_supabase
+from router.auth import checkPassword, PasswordSubmission
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from contextlib import asynccontextmanager
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-
-    await get_supabase()
-
-    yield  # app runs here
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 
 app.add_middleware(

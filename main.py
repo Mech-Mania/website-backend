@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from router.email import EmailRouter, limiter
 from router.scoreboard import ScoreboardRouter
 from starlette.middleware.cors import CORSMiddleware
-from router.auth import checkPassword, PasswordSubmission, get_firebase
+from router.auth import checkPassword, PasswordSubmission, get_supabase
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from contextlib import asynccontextmanager

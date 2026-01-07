@@ -211,7 +211,7 @@ async def verifyEmail(ID:str=''):
         Hello {name}!, <br>
 You are now a part of the MechMania Emailing list! 
 <br><br>
-If you are a student or teacher interested in competing, please complete <a href="https://docs.google.com/forms/d/1y7HCRmqyI9NbTK-SGDF0p1iFNeYG5clBJTr6lruMvDE">this form<a/> or have your club representatives submit it to register a team.
+If you are a student or teacher interested in competing, please complete <a href="https://forms.gle/uk12G5pisSK1eoFg6">this form<a/> or have your club representatives submit it to register a team.
 <br><br>
     This year, we will be running at The University of Waterloo’s Robohub on May 8, 2026. We typically provide the kits a few months in advance to allow your team time to learn, design and build your robot. If you are familiar with robotics or are a beginner, we can provide help in various ways, including lessons on a requested topic or a quick email explanation. In the coming months, a MechMania information document and this year’s schedule will be shared with you. We will contact you further with more information on kits, preparation, and exact details closer to the date. In the meantime, stay updated on any new developments in the competition by following us on Instagram and YouTube.
 <br><br>

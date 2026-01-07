@@ -27,11 +27,11 @@ _=load_dotenv('.env')
 # load supabase client
 db:AsyncClient = None
 async def get_supabase():
-    global supabase
+    global db
     url:str = os.environ["SUPABASE_URL"] or ""
     key:str = os.environ["SUPABASE_KEY"] or ""
-    if supabase is None:
-        supabase = await acreate_client(url,key)
+    if db is None:
+        db = await acreate_client(url,key)
 
 
 #load email client

@@ -11,7 +11,7 @@
 import os.path
 from typing import Any, List
 from pydantic import BaseModel
-from supabase import create_client, Client
+from supabase import acreate_client, AsyncClient
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -28,7 +28,7 @@ _=load_dotenv('.env')
 url:str = os.environ["SUPABASE_URL"] or ""
 key:str = os.environ["SUPABASE_KEY"] or ""
 
-db:Client = create_client(url,key)
+db:AsyncClient = acreate_client(url,key)
 
 
 

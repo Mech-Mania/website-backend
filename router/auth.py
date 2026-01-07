@@ -11,7 +11,7 @@
 import os.path
 from typing import Any, List
 from pydantic import BaseModel
-from supabase import acreate_client, AsyncClient
+from supabase import create_client, Client
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -19,19 +19,17 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import json, os
 from dotenv import load_dotenv
-from contextlib import asynccontextmanager
+
 
 #load environment variables
 _=load_dotenv('.env')
 
 # load supabase client
-db:AsyncClient = None
-async def get_supabase():
-    global db
-    url:str = os.environ["SUPABASE_URL"] or ""
-    key:str = os.environ["SUPABASE_KEY"] or ""
-    if db is None:
-        db = await acreate_client(url,key)
+url:str = os.environ["SUPABASE_URL"] or ""
+key:str = os.environ["SUPABASE_KEY"] or ""
+
+db:Client = create_client(url,key)
+
 
 
 #load email client

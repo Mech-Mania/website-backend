@@ -25,11 +25,15 @@ from dotenv import load_dotenv
 _=load_dotenv('.env')
 
 # load supabase client
-url:str = os.environ["SUPABASE_URL"] or ""
-key:str = os.environ["SUPABASE_KEY"] or ""
+db:AsyncClient = None
+async def get_supabase():
+    global supabase
+    url:str = os.environ["SUPABASE_URL"] or ""
+    key:str = os.environ["SUPABASE_KEY"] or 
+    if supabase is None:
+        supabase = await acreate_client(url,key)
 
-db:AsyncClient = acreate_client(url,key)
-
+get_supabase()
 
 
 #load email client

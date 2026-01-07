@@ -19,7 +19,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import json, os
 from dotenv import load_dotenv
-
+from contextlib import asynccontextmanager
 
 #load environment variables
 _=load_dotenv('.env')
@@ -32,8 +32,6 @@ async def get_supabase():
     key:str = os.environ["SUPABASE_KEY"] or ""
     if supabase is None:
         supabase = await acreate_client(url,key)
-
-get_supabase()
 
 
 #load email client

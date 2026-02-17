@@ -1,17 +1,13 @@
 import json
-from fastapi import FastAPI, HTTPException, Response
-from pydantic import BaseModel
-from fastapi.responses import HTMLResponse, RedirectResponse
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
-from contextlib import asynccontextmanager
+from fastapi import FastAPI, Response
+from fastapi.responses import HTMLResponse 
 #routers
 from router.email import EmailRouter, limiter
 from router.scoreboard import ScoreboardRouter
 from starlette.middleware.cors import CORSMiddleware
-from router.auth import checkPassword, PasswordSubmission, simulateClientUsage
-from slowapi.util import get_remote_address
+from router.auth import checkPassword, PasswordSubmission
 from slowapi.errors import RateLimitExceeded
+from .router.auth import db
 
 
 app = FastAPI()
@@ -23,16 +19,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-scheduler = BackgroundScheduler()
-trigger = CronTrigger(hour=0,minute=0)
-_=scheduler.add_job(simulateClientUsage, trigger)
-scheduler.start()
-
-@asynccontextmanager
-async def lifespan(app:FastAPI):
-    yield
-    scheduler.shutdown()
 
 
 
@@ -55,6 +41,19 @@ def readRoot():
 def verifyPassword(passwordSubmission:PasswordSubmission):
     result = checkPassword(passwordSubmission.password)
     return Response(status_code=200 if result else 401,content=json.dumps({'result':result}), headers={'content-type':'application/json'})
+
+
+@app.get("/cron/simulate")
+# this function runs once a day on a cron job to stop our supabase from pausing
+# cron job from vercel.json
+def simulateClientUsage():
+    _=db.table('emails').select("username").execute()
+    return HTMLResponse(content="<html></html>", status_code=200)
+    
+
+
+
+
 
 # include routers
 #############################################################################################

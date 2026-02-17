@@ -68,10 +68,6 @@ def auth():
     
   return creds
 
-# this function runs once a day on a cron job to stop our supabase from pausing
-def simulateClientUsage():
-    _=db.table('emails').select("username").execute()
-
 
 class PasswordSubmission(BaseModel):
     password:str

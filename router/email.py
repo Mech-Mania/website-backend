@@ -4,7 +4,7 @@ from pydantic import BaseModel, validate_email
 from fastapi import APIRouter, FastAPI, HTTPException, Response, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 import os, base64
-from typing import Any, List
+from typing import Any
 from dotenv import load_dotenv
 from .auth import auth, build, HttpError, checkPassword, db, PasswordSubmission
 from email.mime.image import MIMEImage
@@ -57,7 +57,7 @@ async def removeEmailStep1(emailRaw:EmailSubmitRequest, request:Request):
     except HttpError as e:
         raise HTTPException(e.status_code, e.error_details)
 
-    queryData:List[Any] = db.table("emails").select("*").eq("username",emailRaw.content).execute().data
+    queryData:list[Any] = db.table("emails").select("*").eq("username",emailRaw.content).execute().data
     if len(queryData) == 0:
         return Response(content=json.dumps({'message':"Email not in emailing list"}), status_code=400, headers={'Content-Type':'application/json'})
     
@@ -87,7 +87,7 @@ async def removeEmailStep1(emailRaw:EmailSubmitRequest, request:Request):
 
 @EmailRouter.get('/unsubscribe')
 async def removeEmailStep2(ID:str=''):
-    queryResult:List[Any] = db.table('emails').select('username, verified').eq('random_id',ID).execute().data # return all usernames where the random_id matches.
+    queryResult:list[Any] = db.table('emails').select('username, verified').eq('random_id',ID).execute().data # return all usernames where the random_id matches.
 
     if len(queryResult) == 0: # this means there were no hits on the database
         return Response(json.dumps({'message':'Did not provide a valid ID tag'}),status_code=400,headers={'Content-Type':'application/json'})
@@ -142,7 +142,7 @@ async def submitEmail(emailRaw:EmailSubmitRequest,request:Request):
    
     
     # Check if email is already in table and configure a hashkey accordingly
-    identicalQuery:List[Any] = db.table("emails").select("*").eq("username",email).execute().data
+    identicalQuery:list[Any] = db.table("emails").select("*").eq("username",email).execute().data
     
     random_id:str = generate_random_string(20)
     if len(identicalQuery) > 0: # will only ever be 0 or 1 because name is set as primary key
@@ -184,7 +184,7 @@ async def submitEmail(emailRaw:EmailSubmitRequest,request:Request):
 @EmailRouter.get("/verify")
 async def verifyEmail(ID:str=''):
     
-    queryResult:List[Any] = db.table('emails').select('username, verified').eq('random_id',ID).execute().data # return all usernames where the random_id matches.
+    queryResult:list[Any] = db.table('emails').select('username, verified').eq('random_id',ID).execute().data # return all usernames where the random_id matches.
 
     if len(queryResult) == 0: # this means there were no hits on the database
         return Response(json.dumps({'message':'Did not provide a valid ID tag'}),status_code=400,headers={'Content-Type':'application/json'})

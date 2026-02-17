@@ -10,5 +10,13 @@
             "src":"/(.*)",
             "dest":"main.py"
         }
-    ]
+    ],
+    {
+      "crons": [
+        {
+          "path": "/cron/simulate",
+          "schedule": "0 0 * * *"
+        }
+      ]
+    }
 }

@@ -11,12 +11,10 @@
             "dest":"main.py"
         }
     ],
-    {
-      "crons": [
+    "crons": [
         {
           "path": "/cron/simulate",
           "schedule": "0 0 * * *"
         }
-      ]
-    }
+    ]
 }

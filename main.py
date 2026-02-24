@@ -7,7 +7,7 @@ from router.scoreboard import ScoreboardRouter
 from starlette.middleware.cors import CORSMiddleware
 from router.auth import checkPassword, PasswordSubmission
 from slowapi.errors import RateLimitExceeded
-from .router.auth import db
+from router.auth import db
 
 
 app = FastAPI()

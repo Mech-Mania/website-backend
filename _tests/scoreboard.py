@@ -13,10 +13,10 @@ def updateTeams(teams:list[str]):
 
     print(response.text)
 
-# test updating team scores
+# test updating game scores
 def updateScores(teams:list[str],scores:list[int], game:str):
     response=requests.post(
-                    "http://127.0.0.1:8000/scoreboard/team/score",
+                    "http://127.0.0.1:8000/scoreboard/game/score",
                     json.dumps(
                         {
                             "data":[{
@@ -31,12 +31,43 @@ def updateScores(teams:list[str],scores:list[int], game:str):
 
     print(response.text)
 
+# test getting all scores
+def getScores():
+    response=requests.get(
+                    "http://127.0.0.1:8000/scoreboard",
+    )
+    
+    print(response.text)
+
+# test getting scoreboard enable status
+def getEnStatus():
+    response=requests.get(
+                    "http://127.0.0.1:8000/scoreboard/status"
+    )
+    print(response.text)
+
+# test settings scoreboard enable status
+def setEnStatus(enabled:bool):
+    response=requests.post(
+                    "http://127.0.0.1:8000/scoreboard/status",
+                    json.dumps(
+                        {
+                            "password":pw,
+                            "data":enabled
+                        }
+                    )
+    )
+    print(response.text)
 
 
 #updateTeams(["atest","test2","tester3","test"])
-
+'''
 updateScores(
     ["atest","test2","tester3","test"],
     [0,0,0,0],
     "overall"
 )
+'''
+#getScores()
+#getEnStatus()
+setEnStatus(True);

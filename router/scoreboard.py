@@ -1,16 +1,19 @@
 from fastapi import APIRouter, Response
 from pydantic import BaseModel
 from router.auth import db, PasswordSubmission, checkPassword
+from typing import Any
 import json
 
 ScoreboardRouter = APIRouter()
-
-
 
 class ArrDataReq(BaseModel):
     data:list[str]
     password:str = ""
     
+class boolDataReq(BaseModel):
+    data:bool
+    password:str = ""
+
 class teamWithScore(BaseModel):
     team:str
     score:int = 0
@@ -22,7 +25,7 @@ class gameScoreUpdate(BaseModel):
 
 
 @ScoreboardRouter.post("/scoreboard/team")
-async def updateTeams(arrContent:ArrDataReq):
+async def updateTeams(arrContent:ArrDataReq)->Response:
     """Updates teams so that the teams list reflects the given list"""
     
     if (not checkPassword(arrContent.password)): 
@@ -38,8 +41,8 @@ async def updateTeams(arrContent:ArrDataReq):
     return Response(json.dumps({"message":"Success"}))
 
 
-@ScoreboardRouter.post("/scoreboard/team/score")
-async def updateScores(arrContent:gameScoreUpdate):
+@ScoreboardRouter.post("/scoreboard/game/score")
+async def updateScores(arrContent:gameScoreUpdate)->Response:
     """Updates the scores of all teams for an entire game"""
     
 
@@ -57,3 +60,41 @@ async def updateScores(arrContent:gameScoreUpdate):
     _=db.table('scoreboard').upsert(data,on_conflict="team",ignore_duplicates=False).execute()
 
     return Response(json.dumps({"message":"Success"}))
+
+
+@ScoreboardRouter.get("/scoreboard/game")
+async def getGameScores():
+    """Returns a dict of teams and their scores for all games"""
+    
+    response:Any = db.table('scoreboard').select("*").execute().data
+
+    data:dict[str,dict[str,int]] = {}
+    for row in response:
+
+        data[row.get('team')] = {
+            key:row.get(key) for i,key in enumerate(row) if i != 0
+        }
+
+    return Response(json.dumps({"message":"Success","content":data}))
+
+
+@ScoreboardRouter.get("/scoreboard/status")
+async def isEnabled():
+    
+    response:Any = db.table('status').select("status").eq("name","scoreboard_enabled").execute().data
+    
+    data:bool = response[0].get("status")
+    return Response(json.dumps({"message":"Success","status":data}))
+
+
+@ScoreboardRouter.post("/scoreboard/status")
+async def setEnabled(boolData:boolDataReq):
+    if (not checkPassword(boolData.password)): 
+        return Response(json.dumps({"message":"Invalid Password"}))
+    
+    _=db.table('status').update({"status":boolData.data}).eq("name","scoreboard_enabled").execute()
+
+    return Response(json.dumps({"message":"Success"}))
+
+
+

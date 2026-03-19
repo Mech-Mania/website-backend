@@ -59,6 +59,11 @@ def setEnStatus(enabled:bool):
     )
     print(response.text)
 
+def getGameNames():
+    response=requests.get(
+            "http://127.0.0.1:8000/scoreboard/game/names"
+    )
+    print(response.text)
 
 #updateTeams(["atest","test2","tester3","test"])
 '''
@@ -70,4 +75,5 @@ updateScores(
 '''
 #getScores()
 #getEnStatus()
-setEnStatus(True);
+#setEnStatus(True)
+getGameNames()

@@ -97,4 +97,15 @@ async def setEnabled(boolData:boolDataReq):
     return Response(json.dumps({"message":"Success"}))
 
 
+@ScoreboardRouter.get("/scoreboard/game/names")
+async def getGameNames():
 
+    response:Any = db.table("scoreboard").select("*").limit(1).execute()
+    
+    data = ["overall"]
+    
+    if response.data:
+        data = list(response.data[0].keys())[1:]
+    else:
+        return Response(json.dumps({"message":"No content in database","content":data}))
+    return Response(json.dumps({"message":"Success","content":data}))

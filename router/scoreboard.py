@@ -84,14 +84,23 @@ async def isEnabled():
     response:Any = db.table('status').select("status").eq("name","scoreboard_enabled").execute().data
     
     data:bool = response[0].get("status")
-    return Response(json.dumps({"message":"Success","status":data}))
+
+    response:Any = db.table('sbsettings').select("*").execute().data
+    settingsData:dict[str,dict[str,int]] = {}
+    
+    for row in response:
+        settingsData[row.get('name')] = {
+            key:row.get(key) for i,key in enumerate(row) if i != 0
+        }
+    
+    return Response(json.dumps({"message":"Success","status":data, "settings":settingsData}))
 
 
 @ScoreboardRouter.post("/scoreboard/status")
 async def setEnabled(boolData:boolDataReq):
     if (not checkPassword(boolData.password)): 
         return Response(json.dumps({"message":"Invalid Password"}))
-    
+
     _=db.table('status').update({"status":boolData.data}).eq("name","scoreboard_enabled").execute()
 
     return Response(json.dumps({"message":"Success"}))

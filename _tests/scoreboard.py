@@ -39,8 +39,8 @@ def getScores():
     
     print(response.text)
 
-# test getting scoreboard enable status
-def getEnStatus():
+# test getting scoreboard status
+def getStatus():
     response=requests.get(
                     "http://127.0.0.1:8000/scoreboard/status"
     )
@@ -74,6 +74,6 @@ updateScores(
 )
 '''
 #getScores()
-#getEnStatus()
+getStatus()
 #setEnStatus(True)
-getGameNames()
+#getGameNames()

@@ -14,6 +14,8 @@ def updateTeams(teams:list[str]):
     print(response.text)
 
 # test updating game scores
+# OUTDATED
+'''
 def updateScores(teams:list[str],scores:list[int], game:str):
     response=requests.post(
                     "http://127.0.0.1:8000/scoreboard/game/score",
@@ -30,6 +32,7 @@ def updateScores(teams:list[str],scores:list[int], game:str):
     )
 
     print(response.text)
+'''
 
 # test getting all scores
 def getScores():
@@ -66,7 +69,7 @@ def getGameNames():
     print(response.text)
 
 #updateTeams(["atest","test2","tester3","test"])
-'''
+''' OUTDATED
 updateScores(
     ["atest","test2","tester3","test"],
     [0,0,0,0],

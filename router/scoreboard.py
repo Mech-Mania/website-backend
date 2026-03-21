@@ -1,6 +1,13 @@
 from fastapi import APIRouter, Response
 from pydantic import BaseModel
 from router.auth import db, PasswordSubmission, checkPassword
+'''
+TODO: 
+- Add a cache to minimize updates from the db
+- Update cache with new data taken in transit from scoreboard writes
+- Add a time interval where new data will be queried from the scoreboard to the cache to avoid conflicting data
+'''
+
 from typing import Any
 import json
 
@@ -19,9 +26,8 @@ class teamWithScore(BaseModel):
     score:int = 0
 
 class gameScoreUpdate(BaseModel):
-    data:list[teamWithScore] # team, score
+    data:dict[str,dict[str,int]]
     password:str = ""
-    game:str = ""
 
 
 @ScoreboardRouter.post("/scoreboard/team")
@@ -43,18 +49,19 @@ async def updateTeams(arrContent:ArrDataReq)->Response:
 
 @ScoreboardRouter.post("/scoreboard/game/score")
 async def updateScores(arrContent:gameScoreUpdate)->Response:
-    """Updates the scores of all teams for an entire game"""
+    """Updates the scores of all teams for all games"""
     
 
     if (not checkPassword(arrContent.password)):
         return Response(json.dumps({"message":"Invalid Password"}))
     
-    if (arrContent.game == "team"): # stops the program from overwriting the team column
-        return Response(json.dumps({"message":"Can not overwrite \'team\' column"}))
+    data:list[dict[str,str|int]] = []
+    for team in arrContent.data:
+        teamData = arrContent.data[team]
+        temp:dict[str,str|int] = {game:teamData[game] for game in teamData}
+        temp["team"] = team
+        data.append(temp)
 
-    data:list[dict[str,str|int]] = [
-            {"team":datap.team,arrContent.game:datap.score} for datap in arrContent.data  
-    ]
 
     # no need to be safe with updating teams since it should never happen. Leave that to implementation on website
     _=db.table('scoreboard').upsert(data,on_conflict="team",ignore_duplicates=False).execute()

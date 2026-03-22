@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Response
 from pydantic import BaseModel
-from router.auth import db, PasswordSubmission, checkPassword
+from util.auth import db, PasswordSubmission, checkPassword
 '''
 TODO: 
 - Add a cache to minimize updates from the db
@@ -29,51 +29,52 @@ class gameScoreUpdate(BaseModel):
     data:dict[str,dict[str,int]]
     password:str = ""
 
-
-@ScoreboardRouter.post("/scoreboard/team")
-async def updateTeams(arrContent:ArrDataReq)->Response:
-    """Updates teams so that the teams list reflects the given list"""
-    
-    if (not checkPassword(arrContent.password)): 
-        return Response(json.dumps({"message":"Invalid Password"}))
-
-    data:list[dict[str,str|int]] = [
-            {"team":team} for team in arrContent.data
-    ]
-
-    _=db.table('scoreboard').delete().not_.in_("team",arrContent.data).execute()
-    _=db.table('scoreboard').upsert(data,on_conflict="team",ignore_duplicates=True).execute()
-    
-    return Response(json.dumps({"message":"Success"}))
-
-
 @ScoreboardRouter.post("/scoreboard/game/score")
 async def updateScores(arrContent:gameScoreUpdate)->Response:
-    """Updates the scores of all teams for all games"""
+    """Updates the scores of all teams for all games. Purges teams not mentioned"""
     
+    #############
+    ## Auth Logic
+    #############
+
 
     if (not checkPassword(arrContent.password)):
         return Response(json.dumps({"message":"Invalid Password"}))
     
+    ###############
+    ## Parse W data
+    ###############
+
     data:list[dict[str,str|int]] = []
     for team in arrContent.data:
         teamData = arrContent.data[team]
         temp:dict[str,str|int] = {game:teamData[game] for game in teamData}
         temp["team"] = team
         data.append(temp)
+    
+    ###########
+    ## db Write 
+    ###########
 
-
-    # no need to be safe with updating teams since it should never happen. Leave that to implementation on website
+    _=db.table('scoreboard').delete().not_.in_("team",arrContent.data.keys()).execute()
     _=db.table('scoreboard').upsert(data,on_conflict="team",ignore_duplicates=False).execute()
 
     return Response(json.dumps({"message":"Success"}))
 
 
-@ScoreboardRouter.get("/scoreboard/game")
+@ScoreboardRouter.get("/scoreboard/score")
 async def getGameScores():
     """Returns a dict of teams and their scores for all games"""
     
+    ##########
+    ## db Read 
+    ##########
+
     response:Any = db.table('scoreboard').select("*").execute().data
+
+    ###############
+    ## Parse R data
+    ###############
 
     data:dict[str,dict[str,int]] = {}
     for row in response:
@@ -88,8 +89,16 @@ async def getGameScores():
 @ScoreboardRouter.get("/scoreboard/status")
 async def isEnabled():
     
+    ##########
+    ## db Read 
+    ##########
+
     response:Any = db.table('status').select("status").eq("name","scoreboard_enabled").execute().data
     
+    ###############
+    ## Parse R data
+    ###############
+
     data:bool = response[0].get("status")
 
     response:Any = db.table('sbsettings').select("*").execute().data
@@ -105,9 +114,19 @@ async def isEnabled():
 
 @ScoreboardRouter.post("/scoreboard/status")
 async def setEnabled(boolData:boolDataReq):
+    
+    #############
+    ## Auth Logic
+    #############
+
+
     if (not checkPassword(boolData.password)): 
         return Response(json.dumps({"message":"Invalid Password"}))
-
+    
+    ###########
+    ## db Write 
+    ###########
+    
     _=db.table('status').update({"status":boolData.data}).eq("name","scoreboard_enabled").execute()
 
     return Response(json.dumps({"message":"Success"}))
@@ -116,8 +135,17 @@ async def setEnabled(boolData:boolDataReq):
 @ScoreboardRouter.get("/scoreboard/game/names")
 async def getGameNames():
 
+    ##########
+    ## db Read 
+    ##########
+
+
     response:Any = db.table("scoreboard").select("*").limit(1).execute()
-    
+     
+    ###############
+    ## Parse R data
+    ###############
+
     data = ["overall"]
     
     if response.data:

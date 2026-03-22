@@ -5,9 +5,9 @@ from fastapi.responses import HTMLResponse
 from router.email import EmailRouter, limiter
 from router.scoreboard import ScoreboardRouter
 from starlette.middleware.cors import CORSMiddleware
-from router.auth import checkPassword, PasswordSubmission
+from util.auth import checkPassword, PasswordSubmission
 from slowapi.errors import RateLimitExceeded
-from router.auth import db
+from util.auth import db
 
 
 app = FastAPI()

@@ -1,15 +1,24 @@
+'''
+Endpoints for scoreboard-related items
+> <insert doc item here>
+
+> genCount variables
+* Used for determining if a local cache is equal to the server cache, and therefore if the local cache needs to request new data
+'''
 from fastapi import APIRouter, Response
 from pydantic import BaseModel
 from util.auth import db, PasswordSubmission, checkPassword
-'''
-TODO: 
-- Add a cache to minimize updates from the db
-- Update cache with new data taken in transit from scoreboard writes
-- Add a time interval where new data will be queried from the scoreboard to the cache to avoid conflicting data
-'''
 
 from typing import Any
 import json
+
+
+'''
+- Add a cache on client end in localstorage to minimize updates from the db
+- keep a generation count on client end and on server end. If the counts don't match send new data
+'''
+
+genCount:int = 0 
 
 ScoreboardRouter = APIRouter()
 
@@ -32,6 +41,7 @@ class gameScoreUpdate(BaseModel):
 @ScoreboardRouter.post("/scoreboard/game/score")
 async def updateScores(arrContent:gameScoreUpdate)->Response:
     """Updates the scores of all teams for all games. Purges teams not mentioned"""
+    global genCount
     
     #############
     ## Auth Logic
@@ -58,6 +68,8 @@ async def updateScores(arrContent:gameScoreUpdate)->Response:
 
     _=db.table('scoreboard').delete().not_.in_("team",arrContent.data.keys()).execute()
     _=db.table('scoreboard').upsert(data,on_conflict="team",ignore_duplicates=False).execute()
+    
+    genCount = (genCount+1)%1024
 
     return Response(json.dumps({"message":"Success"}))
 
@@ -115,6 +127,8 @@ async def isEnabled():
 @ScoreboardRouter.post("/scoreboard/status")
 async def setEnabled(boolData:boolDataReq):
     
+    global genCount
+
     #############
     ## Auth Logic
     #############
@@ -128,6 +142,8 @@ async def setEnabled(boolData:boolDataReq):
     ###########
     
     _=db.table('status').update({"status":boolData.data}).eq("name","scoreboard_enabled").execute()
+    
+    genCount = (genCount+1)%1024
 
     return Response(json.dumps({"message":"Success"}))
 
@@ -153,3 +169,10 @@ async def getGameNames():
     else:
         return Response(json.dumps({"message":"No content in database","content":data}))
     return Response(json.dumps({"message":"Success","content":data}))
+
+
+
+@ScoreboardRouter.get("/scoreboard/status/generation")
+async def getGenerationData():
+    '''Returns server generation data'''
+    return Response(json.dumps({"content":genCount}))

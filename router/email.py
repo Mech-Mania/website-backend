@@ -1,12 +1,12 @@
 # This file definitely is a top priority for cleaning up and optimizing
-from router.misc import generate_random_string
+from util.misc import generate_random_string
 from pydantic import BaseModel, validate_email
 from fastapi import APIRouter, FastAPI, HTTPException, Response, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 import os, base64
 from typing import Any
 from dotenv import load_dotenv
-from .auth import auth, build, HttpError, checkPassword, db, PasswordSubmission
+from util.auth import auth, build, HttpError, checkPassword, db, PasswordSubmission
 from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
